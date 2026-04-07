@@ -52,15 +52,31 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Org info */}
-      <div className="border-b border-border bg-card/30">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex flex-wrap gap-8 text-[10px] font-mono text-muted-foreground tracking-wider">
-            <span>DUDUNG ABDURACHMAN -- Former Chief of Staff, Indonesian Army</span>
-            <span className="text-border">|</span>
-            <span>MR. ANDRI FT</span>
-            <span className="text-border">|</span>
-            <span>RISKY HASIBUAN WIRAWANTO</span>
+      {/* Org info - auto-scrolling ticker */}
+      <div className="border-b border-border bg-card/30 overflow-hidden">
+        <div className="py-4">
+          <div className="animate-marquee flex whitespace-nowrap font-mono text-[10px] text-muted-foreground tracking-wider">
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="flex items-center gap-6 mr-6">
+                <span>Jend TNI (Purn.) D.A</span>
+                <span className="text-border">|</span>
+                <span>Satdenpomad TNI</span>
+                <span className="text-border">|</span>
+                <span>Kombes Pol 4d7568616d6d616420456e64726f</span>
+                <span className="text-border">|</span>
+                <span>Mr 414e445249</span>
+                <span className="text-border">|</span>
+                <span>54686f6d6173204875746f6d6f</span>
+                <span className="text-border">|</span>
+                <span>Ibnu Rusdianto</span>
+                <span className="text-border">|</span>
+                <span>Bjormg</span>
+                <span className="text-border">|</span>
+                <span>Sergey Pavsk</span>
+                <span className="text-border">|</span>
+                <span>All right reserved Zeroday International Groups (ZDG INTL)</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
