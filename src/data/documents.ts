@@ -819,5 +819,389 @@ export const documents: ResearchDocument[] = [
       "ISC2. (2023). ISC2 Cybersecurity Workforce Study 2023. https://www.isc2.org/research",
       "Eric S. Raymond. (2001). How to Become a Hacker: The Original Essay. http://www.catb.org/~esr/faqs/hacker-howto.html"
     ]
+  },
+  {
+    id: "ZERO-2025-003",
+    title: "Analisis Teknis CVE-2025-49112: Integer Underflow pada Fungsi setDeferredReply() dalam Subsistem Jaringan Valkey",
+    subtitle: "Studi Kasus Eksploitasi Unsigned Integer Underflow, Analisis Ghidra, dan Strategi Mitigasi pada Sistem Terdistribusi Berbasis C",
+    classification: "CONFIDENTIAL",
+    date: "April 2025",
+    authors: ["@odaysec"],
+    organization: "PT. PwnOsec Technologies Ltd",
+    volume: "Vol. 1 No. 3",
+    pages: 23,
+    abstract: "Laporan ini menyajikan analisis teknis mendalam terhadap kerentanan CVE-2025-49112 yang ditemukan pada sistem Valkey, sebuah proyek open-source fork Redis yang banyak digunakan sebagai penyimpanan data in-memory berkecepatan tinggi. Kerentanan ini terklasifikasi sebagai CWE-191 (Integer Underflow / Wrap-Around) dan berlokasi pada fungsi setDeferredReply() dalam file networking.c. Kondisi kerentanan terjadi ketika operasi pengurangan unsigned integer antara nilai size dan used menghasilkan wrap-around jika used melampaui size, menciptakan nilai yang sangat besar (mendekati 2^32) yang kemudian digunakan sebagai ukuran dalam operasi akses memori. Dalam kondisi terburuk, eksploitasi kerentanan ini dapat menyebabkan heap buffer overflow, out-of-bounds write, dan potensi eksekusi kode jarak jauh pada sistem yang menjalankan Valkey tanpa patch. Laporan ini mencakup: (1) analisis kode sumber dan identifikasi root cause; (2) reproduksi kerentanan melalui proof-of-concept yang terverifikasi; (3) analisis disassembly menggunakan Ghidra; (4) skenario eksploitasi lengkap termasuk heap grooming; (5) identifikasi forensic artifacts; serta (6) rekomendasi mitigasi teknis yang komprehensif.",
+    keywords: ["CVE-2025-49112", "GHSA-xhp4-6g9v-4xvj", "integer underflow", "unsigned integer wrap-around", "Valkey", "heap buffer overflow", "networking.c", "setDeferredReply", "CWE-191", "responsible disclosure", "Ghidra", "binary analysis", "keamanan memori"],
+    sections: [
+      // BAB I
+      {
+        id: "bab-1",
+        title: "BAB I: PENDAHULUAN DAN LATAR BELAKANG",
+        level: 1,
+        content: []
+      },
+      {
+        id: "bab-1-1",
+        title: "1.1 Tentang Valkey",
+        level: 2,
+        content: [
+          "Valkey adalah proyek open-source yang merupakan fork dari Redis, dikembangkan di bawah naungan Linux Foundation setelah Redis mengubah model lisensinya. Valkey mempertahankan kompatibilitas penuh dengan antarmuka Redis dan digunakan secara luas sebagai sistem penyimpanan key-value in-memory berkecepatan tinggi dalam berbagai arsitektur aplikasi modern, mulai dari caching, session management, message brokering, hingga real-time analytics.",
+          "Karena posisi sentral Valkey dalam stack infrastruktur aplikasi modern, kerentanan keamanan pada komponen ini berpotensi memengaruhi jutaan sistem yang bergantung padanya secara langsung maupun tidak langsung. Riset keamanan terhadap Valkey oleh karenanya memiliki dampak yang signifikan terhadap ekosistem teknologi secara keseluruhan."
+        ]
+      },
+      {
+        id: "bab-1-2",
+        title: "1.2 Penemuan dan Konteks Kerentanan",
+        level: 2,
+        content: [
+          "Kerentanan CVE-2025-49112 ditemukan oleh peneliti keamanan @odaysec melalui analisis kode sumber Valkey, khususnya pada subsistem jaringan yang menangani komunikasi antar-komponen dalam mode cluster. Kerentanan ini termasuk dalam kategori yang sering diabaikan namun sangat berbahaya dalam sistem yang ditulis dalam bahasa C: integer underflow pada operasi aritmetika unsigned integer.",
+          "Pada bahasa C, variabel unsigned integer tidak dapat menyimpan nilai negatif. Ketika operasi pengurangan menghasilkan nilai yang seharusnya negatif, hasilnya mengalami wrap-around menuju nilai maksimum dari tipe data tersebut. Untuk uint32_t, nilai ini adalah 4,294,967,295 (2^32 - 1). Nilai yang sangat besar ini kemudian dapat digunakan sebagai parameter ukuran dalam operasi memori, membuka peluang untuk serangan heap overflow."
+        ]
+      },
+      {
+        id: "bab-1-3",
+        title: "1.3 Dampak dan Urgensi",
+        level: 2,
+        content: [
+          "Dampak Potensial CVE-2025-49112:",
+          "-- Denial of Service (DoS): crash server akibat akses memori di luar batas yang dialokasikan",
+          "-- Heap Buffer Overflow: penulisan data di luar batas buffer heap yang dapat memengaruhi metadata alokasi",
+          "-- Potensi Remote Code Execution: dalam skenario eksploitasi yang terstruktur dengan heap grooming",
+          "-- Data Corruption: kerusakan struktur data in-memory yang tidak terduga",
+          "-- Dampak terhadap seluruh klien yang terhubung ke instance Valkey yang terdampak"
+        ]
+      },
+      // BAB II
+      {
+        id: "bab-2",
+        title: "BAB II: LANDASAN TEKNIS INTEGER UNDERFLOW",
+        level: 1,
+        content: []
+      },
+      {
+        id: "bab-2-1",
+        title: "2.1 Memahami Unsigned Integer Arithmetic dalam C",
+        level: 2,
+        content: [
+          "Bahasa pemrograman C mendefinisikan perilaku operasi aritmetika pada unsigned integer sebagai modular arithmetic, yaitu operasi dilakukan modulo 2^N di mana N adalah lebar bit tipe data. Ini berarti bahwa operasi yang menghasilkan nilai di luar rentang representasi tipe data tidak menghasilkan error, melainkan menghasilkan hasil yang di-wrap-around secara deterministik.",
+          "[QUOTE:uint32_t size = 50; uint32_t used = 100; uint32_t remaining = size - used; → Hasil bukan -50, melainkan: 50 - 100 = -50 (mod 2^32) = 4294967246. Nilai ini akan digunakan sebagai ukuran buffer = SANGAT BERBAHAYA]"
+        ]
+      },
+      {
+        id: "bab-2-2",
+        title: "2.2 Perbedaan Signed vs Unsigned Integer dalam Konteks Keamanan",
+        level: 2,
+        content: [
+          "[TABLE_HEADER:KARAKTERISTIK|SIGNED INTEGER (int32_t)|UNSIGNED INTEGER (uint32_t)]",
+          "[TABLE:[Rentang|-2,147,483,648 s.d. +2,147,483,647|0 s.d. 4,294,967,295],[Overflow/Underflow|Undefined Behavior|Wrap-Around (didefinisikan oleh standar C)],[50 - 100|= -50 (negatif, detektable)|= 4,294,967,246 (positif besar, tidak terdeteksi)],[Kondisi if (result > 0)|BENAR jika positif|BENAR untuk nilai underflow (bahaya!)],[Perbandingan|Signed lebih aman untuk ukuran buffer|Unsigned rentan tanpa validasi pre-condition]]"
+        ]
+      },
+      {
+        id: "bab-2-3",
+        title: "2.3 Mengapa Kondisi ini Tidak Terdeteksi oleh Kompiler",
+        level: 2,
+        content: [
+          "Kompiler C standar tidak mengeluarkan warning untuk operasi pengurangan unsigned integer yang berpotensi underflow, karena dari perspektif bahasa, operasi tersebut adalah perilaku yang terdefinisikan (well-defined behavior) dan legal sepenuhnya. Ini menciptakan kondisi di mana kode yang berbahaya secara semantis terlihat benar secara sintaksis dan lolos dari semua pemeriksaan kompiler standar.",
+          "[QUOTE:ISO/IEC 9899:2018 (C18) Pasal 6.2.5.9 mendefinisikan bahwa: operasi aritmetika unsigned integer tidak pernah overflow; hasil selalu direduksi modulo angka yang satu lebih besar dari nilai terbesar yang dapat direpresentasikan oleh tipe hasil. Ini berarti wrap-around adalah perilaku yang terdefinisikan dan tidak dapat di-detect hanya dengan sanitizer standar tanpa flag khusus seperti -fsanitize=unsigned-integer-overflow.]"
+        ]
+      },
+      // BAB III
+      {
+        id: "bab-3",
+        title: "BAB III: ANALISIS KODE SUMBER DAN IDENTIFIKASI ROOT CAUSE",
+        level: 1,
+        content: []
+      },
+      {
+        id: "bab-3-1",
+        title: "3.1 Lokasi Kerentanan: networking.c setDeferredReply()",
+        level: 2,
+        content: [
+          "Kerentanan berlokasi di dalam fungsi setDeferredReply() pada file networking.c. Fungsi ini bertanggung jawab untuk menetapkan balasan yang ditangguhkan (deferred reply) dalam konteks komunikasi jaringan antar-node Valkey. Pada bagian kritis fungsi ini, terdapat pengecekan kondisi yang menggunakan operasi pengurangan unsigned integer tanpa validasi pre-condition yang memadai."
+        ]
+      },
+      {
+        id: "bab-3-2",
+        title: "3.2 Kode Rentan dan Penjelasan Teknis",
+        level: 2,
+        content: [
+          "[QUOTE:if (prev->size - prev->used > 0) { // Jika prev->used > prev->size, maka: prev->size - prev->used = LARGE_POSITIVE_VALUE (underflow!) // Kondisi > 0 selalu TRUE untuk nilai wrap-around // Kode di dalam blok ini akan dieksekusi dengan ukuran yang salah }]",
+          "Masalah utama pada kode di atas terletak pada asumsi implisit bahwa nilai prev->used tidak akan pernah melebihi prev->size. Dalam operasi normal, asumsi ini mungkin valid. Namun ketika penyerang dapat memanipulasi ukuran paket yang dikirim ke server, asumsi ini dapat dilanggar, mengakibatkan kondisi underflow yang tidak terdeteksi oleh pengecekan kondisi."
+        ]
+      },
+      {
+        id: "bab-3-3",
+        title: "3.3 Analisis Skenario Trigger",
+        level: 2,
+        content: [
+          "Secara teknis, kondisi kerentanan dapat dipicu melalui langkah-langkah berikut:",
+          "1. Penyerang mengirimkan paket yang telah dimanipulasi ke port Valkey (default: 6379) dengan nilai size header yang kecil namun nilai used yang melebihinya.",
+          "2. Fungsi setDeferredReply() membaca nilai prev->size dan prev->used dari buffer paket yang dikendalikan penyerang.",
+          "3. Operasi pengurangan prev->size - prev->used menghasilkan nilai wrap-around mendekati 4,294,967,246 untuk uint32_t.",
+          "4. Kondisi if (prev->size - prev->used > 0) mengevaluasi menjadi TRUE karena nilai wrap-around adalah positif.",
+          "5. Kode dalam blok kondisi dieksekusi menggunakan nilai ukuran yang salah, memungkinkan akses memori di luar batas yang dialokasikan."
+        ]
+      },
+      // BAB IV
+      {
+        id: "bab-4",
+        title: "BAB IV: ANALISIS BINER MENGGUNAKAN GHIDRA",
+        level: 1,
+        content: []
+      },
+      {
+        id: "bab-4-1",
+        title: "4.1 Metodologi Reverse Engineering",
+        level: 2,
+        content: [
+          "Untuk memperdalam pemahaman tentang perilaku kerentanan pada level biner, penelitian ini menggunakan Ghidra (NSA Security Research Tool) versi 11.x untuk melakukan disassembly dan decompilasi biner Valkey yang dikompilasi pada commit yang terdampak. Analisis biner memungkinkan peneliti untuk memverifikasi bahwa perilaku underflow yang diidentifikasi pada level kode sumber juga tercermin pada level instruksi mesin."
+        ]
+      },
+      {
+        id: "bab-4-2",
+        title: "4.2 Langkah Analisis Ghidra",
+        level: 2,
+        content: [
+          "1. Kompilasi Valkey dari commit yang terdampak (daea05b1) dengan debug symbols: gcc -g -O0 -o valkey-server src.c",
+          "2. Import binary ke Ghidra melalui File > Import File > valkey-server, pilih format ELF dan arsitektur x86-64.",
+          "3. Jalankan Auto Analysis dengan semua analyzer aktif termasuk Aggressive Instruction Finder dan Function Start Search.",
+          "4. Navigasi ke fungsi setDeferredReply() melalui Symbol Tree atau search function.",
+          "5. Identifikasi instruksi SUB (subtract) dalam decompiled output di Decompiler window.",
+          "6. Annotasi instruksi yang relevan untuk dokumentasi dan verifikasi perilaku unsigned comparison."
+        ]
+      },
+      {
+        id: "bab-4-3",
+        title: "4.3 Output Decompilasi Ghidra",
+        level: 2,
+        content: [
+          "[QUOTE:void setDeferredReply(client *c, void *node, const char *s, size_t length) → Instruksi Assembly: MOV EAX, [RBX+0x10] (load prev->size) → MOV ECX, [RBX+0x14] (load prev->used) → SUB EAX, ECX (UNSIGNED!) → TEST EAX, EAX → JLE 0x4A1F2 (jump jika <= 0, TIDAK TERCAPAI jika underflow!) → if (old->size - old->used > 0) ← TITIK KERENTANAN]"
+        ]
+      },
+      {
+        id: "bab-4-4",
+        title: "4.4 Analisis Instruksi Assembly Kritis",
+        level: 2,
+        content: [
+          "Pada level assembly x86-64, operasi yang bermasalah terlihat sangat jelas. Instruksi SUB pada arsitektur x86 tidak membedakan antara signed dan unsigned subtraction dalam hal operasi bit-level. Perbedaannya hanya terletak pada interpretasi flag hasil (CF untuk unsigned, OF untuk signed). Kode yang terdampak menggunakan perbandingan yang tidak memperhatikan Carry Flag (CF), sehingga kondisi underflow tidak terdeteksi.",
+          "[QUOTE:0x004A1D8A: MOV EAX, [RBX+0x10] → EAX = prev->size (50) | 0x004A1D8D: MOV ECX, [RBX+0x14] → ECX = prev->used (100) | 0x004A1D90: SUB EAX, ECX → EAX = 50 - 100 = 0xFFFFFFCE, CF=1 (underflow!) tapi kode tidak memeriksa CF | 0x004A1D92: TEST EAX, EAX → Zero flag check | 0x004A1D94: JLE 0x004A1F20 → Jump if <= 0 (SIGNED compare!) → EAX = 0xFFFFFFCE > 0 sebagai SIGNED → Kondisi JLE TIDAK diambil = BUG!]"
+        ]
+      },
+      // BAB V
+      {
+        id: "bab-5",
+        title: "BAB V: REPRODUKSI KERENTANAN DAN PROOF OF CONCEPT",
+        level: 1,
+        content: []
+      },
+      {
+        id: "bab-5-1",
+        title: "5.1 Lingkungan Pengujian",
+        level: 2,
+        content: [
+          "[TABLE_HEADER:KOMPONEN|SPESIFIKASI]",
+          "[TABLE:[Sistem Operasi|Ubuntu 22.04 LTS x86-64 (terisolasi di VM)],[Compiler|GCC 11.4.0],[Target Commit|daea05b1e26db29bfd1c033e27f9d519a2f8ccbb],[Port Valkey|6379 (default)],[Tools Analisis|Ghidra 11.x, GDB 12.1, Valgrind 3.19, Python 3.11],[Lingkungan|Air-gapped VM, tidak terhubung ke jaringan publik]]"
+        ]
+      },
+      {
+        id: "bab-5-2",
+        title: "5.2 Langkah Reproduksi: Kompilasi Target",
+        level: 2,
+        content: [
+          "[QUOTE:Step 1: git clone https://github.com/valkey-io/valkey.git | Step 2: git checkout daea05b1e26db29bfd1c033e27f9d519a2f8ccbb | Step 3: make CFLAGS='-g -O0 -fsanitize=unsigned-integer-overflow' | Step 4: ls -la src/valkey-server → Output: ELF 64-bit LSB pie executable]"
+        ]
+      },
+      {
+        id: "bab-5-3",
+        title: "5.3 Demonstrasi Proof of Concept: Underflow",
+        level: 2,
+        content: [
+          "Untuk mengilustrasikan perilaku underflow secara terisolasi sebelum eksploitasi penuh, berikut adalah program C yang mereproduksi kondisi kerentanan:",
+          "[QUOTE:process_buffer(100, 50) → remaining = 50 bytes (BENAR, kasus normal) | process_buffer(50, 100) → remaining = 4294967246 bytes (SALAH! Wrap-around, kondisi if TETAP TRUE) | process_buffer(100, 100) → remaining = 0, kondisi if FALSE (aman)]"
+        ]
+      },
+      {
+        id: "bab-5-4",
+        title: "5.4 Eksploitasi Jaringan: Mengirim Paket Berbahaya",
+        level: 2,
+        content: [
+          "Setelah underflow berhasil didemonstrasikan secara terisolasi, langkah berikutnya adalah mereplikasi kondisi ini melalui koneksi jaringan ke server Valkey yang aktif. Script Python mengilustrasikan bagaimana penyerang dapat memanipulasi nilai size dan used melalui paket yang dikirim ke port Valkey:",
+          "[QUOTE:create_underflow_packet(size_val=50, used_val=300) → Pack sebagai unsigned 32-bit big-endian → size=50, used=300: 50 - 300 = 4294967046 (underflow!) → Kirim ke TARGET_HOST:6379 → Monitor log server untuk SIGSEGV atau crash]"
+        ]
+      },
+      {
+        id: "bab-5-5",
+        title: "5.5 Heap Grooming untuk Eksploitasi yang Lebih Reliabel",
+        level: 2,
+        content: [
+          "Dalam skenario eksploitasi tingkat lanjut, penyerang dapat menggunakan teknik heap grooming untuk menempatkan objek target (seperti function pointer atau vtable) pada posisi memori yang dapat ditimpa melalui operasi out-of-bounds write yang diakibatkan oleh underflow.",
+          "-- Phase 1: Spray heap dengan objek-objek berukuran tertentu (100x clientReplyBlock 64 bytes)",
+          "-- Phase 2: Buat lubang (hole) pada heap dengan membebaskan setiap objek genap untuk membuat fragmentasi",
+          "-- Phase 3: Alokasikan objek target di lubang yang tersedia tepat setelah buffer yang akan di-overflow",
+          "-- Phase 4: Trigger underflow dengan send_packet(TARGET, 50, 300) → 50 - 300 = underflow, data penyerang menimpa objek target"
+        ]
+      },
+      // BAB VI
+      {
+        id: "bab-6",
+        title: "BAB VI: FORENSIC ARTIFACTS DAN DETEKSI SERANGAN",
+        level: 1,
+        content: []
+      },
+      {
+        id: "bab-6-1",
+        title: "6.1 Indikator Kompromi pada System Log",
+        level: 2,
+        content: [
+          "Ketika kondisi integer underflow memicu akses memori yang tidak valid, sistem operasi dan Valkey sendiri menghasilkan sejumlah artefak forensik yang dapat digunakan untuk mendeteksi upaya eksploitasi:",
+          "1. Periksa segmentation fault Valkey: grep -i 'valkey.*segfault|valkey.*SIGSEGV' /var/log/syslog",
+          "2. Periksa kernel log: dmesg | grep -i 'valkey|segfault|general protection'",
+          "3. Monitor koneksi aktif: ss -tnp | grep ':6379'",
+          "4. Capture traffic: tcpdump -i lo 'tcp port 6379' -w valkey_capture.pcap",
+          "5. Monitor memory usage: cat /proc/$(pgrep valkey)/status",
+          "6. Periksa core dump: coredumpctl info valkey-server"
+        ]
+      },
+      {
+        id: "bab-6-2",
+        title: "6.2 Analisis Traffic Jaringan: Pola Paket Anomali",
+        level: 2,
+        content: [
+          "Pada level jaringan, upaya eksploitasi CVE-2025-49112 dapat diidentifikasi melalui pola paket yang tidak normal. Paket yang dirancang untuk memicu underflow akan memiliki nilai header yang tidak konsisten, di mana nilai used secara signifikan melebihi nilai size.",
+          "[QUOTE:Filter Wireshark: tcp.port == 6379 and tcp.payload | Tanda merah: payload byte [0:4] (size) < payload byte [4:8] (used) → Deteksi paket anomali yang mengindikasikan eksploitasi]"
+        ]
+      },
+      {
+        id: "bab-6-3",
+        title: "6.3 Indikator Kompromi (IoC) Rangkuman",
+        level: 2,
+        content: [
+          "[TABLE_HEADER:INDIKATOR KOMPROMI|INTERPRETASI]",
+          "[TABLE:[Kernel segfault/SIGSEGV pada proses valkey-server|Prioritas Tinggi: kemungkinan eksploitasi berhasil],[Koneksi TCP port 6379 dengan payload pendek berulang|Kemungkinan reconnaissance atau fuzzing],[Paket dengan nilai used melebihi size pada header|Indikasi langsung trigger underflow],[Penurunan drastis memori tersedia pada host Valkey|Kemungkinan heap exhaustion atau corruption],[Core dump dari proses valkey-server|Eksploitasi kemungkinan berhasil men-crash server],[Lonjakan koneksi dari satu sumber IP|Kemungkinan heap grooming atau brute force]]"
+        ]
+      },
+      // BAB VII
+      {
+        id: "bab-7",
+        title: "BAB VII: STRATEGI MITIGASI DAN REKOMENDASI TEKNIS",
+        level: 1,
+        content: []
+      },
+      {
+        id: "bab-7-1",
+        title: "7.1 Perbaikan Kode: Solusi Utama",
+        level: 2,
+        content: [
+          "Perbaikan yang tepat untuk kerentanan ini adalah menambahkan pengecekan pre-condition sebelum melakukan operasi pengurangan unsigned integer:",
+          "[QUOTE:SEBELUM (RENTAN): if (prev->size - prev->used > 0) { ... } | SESUDAH (AMAN): if (prev->used < prev->size) { size_t remaining = prev->size - prev->used; ... } → Perbandingan langsung, bukan pengurangan. Sekarang aman karena used < size dijamin.]"
+        ]
+      },
+      {
+        id: "bab-7-2",
+        title: "7.2 Perbaikan dengan C23 Checked Arithmetic",
+        level: 2,
+        content: [
+          "[QUOTE:#include <stdckdint.h> (C23 standard) | if (!ckd_sub(&remaining, prev->size, prev->used)) { /* Aman: remaining valid */ } else { /* Handle error: used melebihi size */ serverLog(LL_WARNING, \"setDeferredReply: invalid buffer state\"); }]",
+          "Fungsi ckd_sub() mengembalikan true jika overflow/underflow terjadi, memberikan deteksi eksplisit yang tidak mungkin dilakukan dengan operasi aritmetika biasa."
+        ]
+      },
+      {
+        id: "bab-7-3",
+        title: "7.3 Perbaikan Defensif: Menggunakan size_t",
+        level: 2,
+        content: [
+          "Gunakan size_t (platform-native unsigned) daripada uint32_t dan tambahkan assertion untuk verifikasi di debug build:",
+          "[QUOTE:typedef struct clientReplyBlock { size_t size; size_t used; char buf[]; }; | assert(prev->used <= prev->size); // Crash di debug build jika invariant dilanggar | if (prev->used < prev->size) { size_t remaining = prev->size - prev->used; ... }]"
+        ]
+      },
+      {
+        id: "bab-7-4",
+        title: "7.4 Rekomendasi Kompilasi: Sanitizer Flags",
+        level: 2,
+        content: [
+          "[QUOTE:GCC: gcc -fsanitize=undefined -fsanitize=unsigned-integer-overflow -fno-sanitize-recover=all | Clang: clang -fsanitize=undefined -fsanitize=unsigned-integer-overflow -fsanitize-trap=all | Production (ASan): gcc -fsanitize=address -fsanitize=leak -fno-omit-frame-pointer]"
+        ]
+      },
+      {
+        id: "bab-7-5",
+        title: "7.5 Rekomendasi Operasional",
+        level: 2,
+        content: [
+          "Langkah Mitigasi Segera (Prioritas Tinggi):",
+          "-- Update Valkey ke versi yang sudah mengandung patch untuk CVE-2025-49112 sesegera mungkin",
+          "-- Batasi akses ke port Valkey (6379) hanya dari IP yang dipercaya menggunakan firewall rules",
+          "-- Nonaktifkan akses Valkey dari jaringan publik jika tidak diperlukan",
+          "-- Aktifkan Valkey authentication (requirepass) untuk lapisan perlindungan tambahan",
+          "-- Monitor log sistem dan Valkey untuk indikator kompromi yang disebutkan pada Bab VI",
+          "",
+          "Rekomendasi Jangka Panjang:",
+          "-- Terapkan static analysis tools (Clang Static Analyzer, Coverity, atau CodeQL) pada pipeline CI/CD",
+          "-- Integrasikan fuzzing (AFL++, libFuzzer) untuk komponen networking Valkey",
+          "-- Pertimbangkan adopsi Rust untuk komponen baru yang memerlukan keamanan memori tinggi"
+        ]
+      },
+      // BAB VIII
+      {
+        id: "bab-8",
+        title: "BAB VIII: RESPONSIBLE DISCLOSURE TIMELINE",
+        level: 1,
+        content: []
+      },
+      {
+        id: "bab-8-1",
+        title: "8.1 Kronologi Penemuan dan Pengungkapan",
+        level: 2,
+        content: [
+          "[TABLE_HEADER:TANGGAL|KEJADIAN DAN KETERANGAN]",
+          "[TABLE:[2025-02-19|Penemuan kerentanan oleh @odaysec melalui analisis kode sumber networking.c. Identifikasi awal melalui code review dan fuzzing dasar.],[2025-02-19|Verifikasi melalui proof-of-concept dan reproduksi lokal pada lingkungan terisolasi. Konfirmasi kondisi underflow dapat dipicu melalui koneksi jaringan.],[2025-02-20|Analisis mendalam menggunakan Ghidra untuk verifikasi perilaku di level biner. Dokumentasi teknis lengkap disiapkan.],[2025-02-20|Pengiriman laporan kerentanan secara privat kepada tim keamanan Valkey melalui saluran responsible disclosure.],[2025-02-xx|Konfirmasi penerimaan laporan dari tim Valkey. Proses triage dan verifikasi internal dimulai.],[2025-xx-xx|Penetapan CVE-2025-49112 oleh CNA dan penerbitan GHSA-xhp4-6g9v-4xvj.],[2025-xx-xx|Patch tersedia dan dirilis sebagai bagian dari pembaruan keamanan Valkey.],[2025-04-xx|Pengungkapan publik melalui GitHub Security Advisory setelah patch tersedia.]]"
+        ]
+      },
+      {
+        id: "bab-8-2",
+        title: "8.2 Pernyataan Etika dan Responsible Disclosure",
+        level: 2,
+        content: [
+          "Penelitian ini dilakukan sepenuhnya sesuai dengan prinsip-prinsip responsible disclosure yang ditetapkan oleh komunitas keamanan siber internasional. Kerentanan tidak pernah dieksploitasi pada sistem produksi tanpa izin. Seluruh pengujian dilakukan di lingkungan terisolasi yang sepenuhnya dimiliki dan dikontrol oleh peneliti.",
+          "Laporan dikirimkan secara privat kepada tim Valkey sebelum pengungkapan publik, memberikan waktu yang memadai untuk perbaikan. Informasi teknis sensitif yang dapat langsung digunakan untuk serangan telah disanitasi dari laporan publik ini. Tujuan satu-satunya dari publikasi ini adalah meningkatkan kesadaran komunitas terhadap pola kerentanan integer underflow."
+        ]
+      },
+      // BAB IX
+      {
+        id: "bab-9",
+        title: "BAB IX: KESIMPULAN DAN PEMBELAJARAN",
+        level: 1,
+        content: []
+      },
+      {
+        id: "bab-9-1",
+        title: "9.1 Ringkasan Temuan",
+        level: 2,
+        content: [
+          "Kerentanan CVE-2025-49112 pada Valkey adalah contoh yang sangat baik dari kategori kerentanan yang dapat lolos dari code review standar karena berkaitan dengan perilaku bahasa C yang terdefinisikan namun kontra-intuitif. Integer underflow pada unsigned integer arithmetic tidak menghasilkan error kompiler, tidak selalu terdeteksi oleh sanitizer standar, dan dapat mengakibatkan kondisi keamanan yang sangat serius.",
+          "Enam poin pembelajaran utama dari penelitian ini:",
+          "1. Operasi pengurangan unsigned integer dalam C yang dapat menghasilkan nilai negatif adalah sumber kerentanan yang tersembunyi namun sangat berbahaya, khususnya ketika hasil operasi digunakan sebagai ukuran buffer.",
+          "2. Kondisi if (a - b > 0) untuk unsigned integer tidak setara dengan if (a > b). Keduanya menghasilkan hasil yang berbeda ketika b > a, dan pemilihan yang salah dapat membuka celah keamanan kritis.",
+          "3. Analisis biner menggunakan Ghidra memungkinkan verifikasi perilaku kerentanan pada level instruksi mesin, yang penting untuk membuktikan bahwa perbaikan kode sumber benar-benar menghasilkan kode biner yang aman.",
+          "4. Heap grooming dapat mengubah kerentanan yang awalnya hanya DoS menjadi primitive eksploitasi yang lebih powerful.",
+          "5. Artefak forensik dari upaya eksploitasi integer underflow dapat diidentifikasi dan dimonitor oleh tim defensif.",
+          "6. Pola kerentanan serupa (CWE-191) kemungkinan besar ada di komponen lain dari Valkey dan proyek open-source berbasis C lainnya. Audit kode sistematis sangat direkomendasikan."
+        ]
+      }
+    ],
+    references: [
+      "GitHub Security Advisory Database. (2025). GHSA-xhp4-6g9v-4xvj: Integer Underflow in Valkey setDeferredReply(). https://github.com/advisories/GHSA-xhp4-6g9v-4xvj",
+      "National Vulnerability Database / NIST. (2025). CVE-2025-49112: Valkey Unsigned Integer Underflow in networking.c. https://nvd.nist.gov/vuln/detail/CVE-2025-49112",
+      "Valkey Project. (2025). Valkey Source Code Repository: valkey-io/valkey. https://github.com/valkey-io/valkey",
+      "odaysec. (2025). Vulnerability Discovery: CVE-2025-49112 - Integer Underflow setDeferredReply Valkey. https://github.com/advisories/GHSA-xhp4-6g9v-4xvj",
+      "National Security Agency (NSA). (2024). Ghidra Software Reverse Engineering Framework. https://ghidra-sre.org/",
+      "ISO/IEC. (2018). ISO/IEC 9899:2018 - Programming Languages: C (C18 Standard). https://www.iso.org/standard/74528.html",
+      "MITRE Corporation. (2024). CWE-191: Integer Underflow (Wrap or Wraparound). https://cwe.mitre.org/data/definitions/191.html",
+      "OpenSSF. (2024). Guide to Coordinated Vulnerability Disclosure. https://openssf.org/blog/2023/06/22/guide-to-coordinated-vulnerability-disclosure/",
+      "Seacord, R.C. (2013). Secure Coding in C and C++ (2nd Edition): Chapter 5 - Integer Security. Addison-Wesley Professional.",
+      "Andriesse, D. (2019). Practical Binary Analysis. No Starch Press.",
+      "LLVM Project. (2024). UndefinedBehaviorSanitizer. https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html",
+      "GCC Documentation. (2024). -fsanitize=undefined. https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html",
+      "ISO/IEC JTC1/SC22/WG14. (2023). N3096: Checked Arithmetic for C - stdckdint.h (C23 Draft). https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3096.pdf"
+    ]
   }
 ];
