@@ -244,6 +244,63 @@ const ContentBlock = ({ content }: { content: string }) => {
     );
   }
 
+  // Code block rendering
+  if (content.startsWith("[CODE:")) {
+    const codeContent = content.replace("[CODE:", "").replace(/\]$/, "");
+    const lines = codeContent.split(" | ");
+    return (
+      <div className="my-6 rounded border border-border overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-2 bg-secondary/70 border-b border-border">
+          <div className="flex gap-1.5">
+            <div className="h-2.5 w-2.5 rounded-full bg-destructive/50" />
+            <div className="h-2.5 w-2.5 rounded-full bg-yellow-500/50" />
+            <div className="h-2.5 w-2.5 rounded-full bg-intel-green/50" />
+          </div>
+          <span className="font-mono text-[9px] text-muted-foreground tracking-wider ml-2">TERMINAL</span>
+        </div>
+        <pre className="p-4 bg-card/80 overflow-x-auto">
+          <code className="font-mono text-[11px] text-intel-green/90 leading-relaxed">
+            {lines.map((line, i) => (
+              <span key={i} className="block">{line}</span>
+            ))}
+          </code>
+        </pre>
+      </div>
+    );
+  }
+
+  // Code block with language label
+  if (content.startsWith("[CODE_")) {
+    const match = content.match(/^\[CODE_([A-Z]+):([\s\S]*)\]$/);
+    if (match) {
+      const lang = match[1];
+      const codeContent = match[2];
+      const lines = codeContent.split(" | ");
+      return (
+        <div className="my-6 rounded border border-border overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2 bg-secondary/70 border-b border-border">
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1.5">
+                <div className="h-2.5 w-2.5 rounded-full bg-destructive/50" />
+                <div className="h-2.5 w-2.5 rounded-full bg-yellow-500/50" />
+                <div className="h-2.5 w-2.5 rounded-full bg-intel-green/50" />
+              </div>
+              <span className="font-mono text-[9px] text-muted-foreground tracking-wider ml-2">CODE</span>
+            </div>
+            <span className="font-mono text-[9px] text-muted-foreground/50 tracking-wider">{lang}</span>
+          </div>
+          <pre className="p-4 bg-card/80 overflow-x-auto">
+            <code className="font-mono text-[11px] text-foreground/80 leading-relaxed">
+              {lines.map((line, i) => (
+                <span key={i} className="block">{line}</span>
+              ))}
+            </code>
+          </pre>
+        </div>
+      );
+    }
+  }
+
   // Quote rendering
   if (content.startsWith("[QUOTE:")) {
     const quoteText = content.replace("[QUOTE:", "").replace(/\]$/, "");
