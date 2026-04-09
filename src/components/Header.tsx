@@ -26,7 +26,7 @@ const Header = () => {
             <nav className="hidden md:flex items-center gap-6">
               <NavItem icon={<FileText className="h-3.5 w-3.5" />} label="RESEARCH" active={location.pathname === "/"} onClick={() => navigate("/")} />
               <NavItem icon={<Users className="h-3.5 w-3.5" />} label="TEAM" active={location.pathname === "/team"} onClick={() => navigate("/team")} />
-              <NavItem icon={<Clock className="h-3.5 w-3.5" />} label="ARCHIVE" />
+              <NavItem icon={<Clock className="h-3.5 w-3.5" />} label="ARCHIVE" active={location.pathname === "/archive"} onClick={() => navigate("/archive")} />
             </nav>
             <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary rounded border border-border">
               <div className="h-1.5 w-1.5 rounded-full bg-intel-green animate-pulse-slow" />
