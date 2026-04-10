@@ -62,6 +62,22 @@ const downloads: DownloadItem[] = [
       },
     ],
   },
+  {
+    id: "ZERO-2025-005",
+    title: "CVE-2020-11798: Unauthenticated Path Traversal on Ferrari MiCollab",
+    subtitle: "Path Traversal Bypassing CGI Endpoint to Remote Code Execution - Ferrari Bug Bounty Program",
+    classification: "CONFIDENTIAL",
+    date: "2020",
+    pages: 24,
+    files: [
+      {
+        label: "DOCX",
+        url: "/downloads/CVE-2020-11798_Ferrari_Journal.docx",
+        format: "DOCX",
+        size: "~3 MB",
+      },
+    ],
+  },
 ];
 
 const Archive = () => {
