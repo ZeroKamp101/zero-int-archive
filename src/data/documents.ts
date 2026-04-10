@@ -1635,8 +1635,8 @@ export const documents: ResearchDocument[] = [
       "CIS - Center for Internet Security. CIS Benchmark for Apache HTTP Server. https://cisecurity.org",
       "NIST. SP 800-44: Guidelines on Securing Public Web Servers. https://nvlpubs.nist.gov"
     ]
-  }
   },
+  {
   {
     id: "ZERO-2025-005",
     title: "CVE-2020-11798: Unauthenticated Path Traversal Bypassing CGI Endpoint to Remote Code Execution",
