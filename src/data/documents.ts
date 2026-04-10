@@ -1637,7 +1637,6 @@ export const documents: ResearchDocument[] = [
     ]
   },
   {
-  {
     id: "ZERO-2025-005",
     title: "CVE-2020-11798: Unauthenticated Path Traversal Bypassing CGI Endpoint to Remote Code Execution",
     subtitle: "Analisis Teknis Mendalam: Path Traversal via vcs_access_file.cgi pada Ferrari MiCollab, Ghidra Binary Research, Eskalasi ke RCE, dan Panduan Mitigasi Komprehensif",
