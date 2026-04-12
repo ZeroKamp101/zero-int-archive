@@ -1,9 +1,17 @@
-import { FileText, Shield, Users, Clock } from "lucide-react";
+import { FileText, Shield, Users, Clock, Menu, X } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useState } from "react";
 
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const navItems = [
+    { icon: <FileText className="h-3.5 w-3.5" />, label: "RESEARCH", path: "/" },
+    { icon: <Users className="h-3.5 w-3.5" />, label: "TEAM", path: "/team" },
+    { icon: <Clock className="h-3.5 w-3.5" />, label: "ARCHIVE", path: "/archive" },
+  ];
 
   return (
     <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
@@ -24,17 +32,39 @@ const Header = () => {
 
           <div className="flex items-center gap-6">
             <nav className="hidden md:flex items-center gap-6">
-              <NavItem icon={<FileText className="h-3.5 w-3.5" />} label="RESEARCH" active={location.pathname === "/"} onClick={() => navigate("/")} />
-              <NavItem icon={<Users className="h-3.5 w-3.5" />} label="TEAM" active={location.pathname === "/team"} onClick={() => navigate("/team")} />
-              <NavItem icon={<Clock className="h-3.5 w-3.5" />} label="ARCHIVE" active={location.pathname === "/archive"} onClick={() => navigate("/archive")} />
+              {navItems.map((item) => (
+                <NavItem key={item.label} icon={item.icon} label={item.label} active={location.pathname === item.path} onClick={() => navigate(item.path)} />
+              ))}
             </nav>
             <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary rounded border border-border">
               <div className="h-1.5 w-1.5 rounded-full bg-intel-green animate-pulse-slow" />
               <span className="font-mono text-[10px] text-muted-foreground tracking-wider">SYSTEM ACTIVE</span>
             </div>
+            <button className="md:hidden p-1.5 text-muted-foreground hover:text-foreground transition-colors" onClick={() => setMobileOpen(!mobileOpen)}>
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
         </div>
       </div>
+
+      {mobileOpen && (
+        <div className="md:hidden border-t border-border bg-card/95 backdrop-blur-sm">
+          <nav className="flex flex-col px-6 py-3 gap-1">
+            {navItems.map((item) => (
+              <button
+                key={item.label}
+                onClick={() => { navigate(item.path); setMobileOpen(false); }}
+                className={`flex items-center gap-2 font-mono text-[11px] tracking-wider py-2.5 px-3 rounded transition-colors ${
+                  location.pathname === item.path ? "text-foreground bg-secondary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                }`}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+      )}
     </header>
   );
 };
