@@ -78,6 +78,22 @@ const downloads: DownloadItem[] = [
       },
     ],
   },
+  {
+    id: "ZERO-2025-006",
+    title: "Struktur Biaya, Model Bisnis, dan Transparansi Fee E-Wallet di Indonesia",
+    subtitle: "Analisis Komprehensif terhadap OVO, GoPay, ShopeePay, LinkAja, dan DANA",
+    classification: "PUBLIC",
+    date: "2024",
+    pages: 18,
+    files: [
+      {
+        label: "DOCX",
+        url: "/downloads/EWallet_Fee_Analysis_Indonesia_2024.docx",
+        format: "DOCX",
+        size: "~2 MB",
+      },
+    ],
+  },
 ];
 
 const Archive = () => {
