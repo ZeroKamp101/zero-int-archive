@@ -141,7 +141,7 @@ const DocumentViewer = ({ document, onBack }: DocumentViewerProps) => {
             {/* Footer */}
             <div className="mt-16 pt-6 border-t border-border text-center">
               <p className="font-mono text-[10px] text-muted-foreground tracking-wider">
-                &copy; 2025 pwn0sec -- Hak Cipta Dilindungi Undang-Undang
+                &copy; 2025 [ZDG Asian GROUP] -- Hak Cipta Dilindungi Undang-Undang (PSE Komdigi)
               </p>
             </div>
           </main>
