@@ -167,7 +167,7 @@ const Team = () => {
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-muted-foreground" />
               <span className="font-mono text-[10px] text-muted-foreground tracking-wider">
-                ZEROINTL DOCS -- PT. PWNOSEC TECHNOLOGIES LTD
+                ZEROINTL DOCS -- ZDG Asian Groups
               </span>
             </div>
             <span className="font-mono text-[10px] text-muted-foreground">
