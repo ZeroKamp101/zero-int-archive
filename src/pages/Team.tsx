@@ -77,11 +77,11 @@ const teamMembers: TeamMember[] = [
   },
   {
     codename: "54686f6d73",
-    alias: "odaysec",
+    alias: "odaysec / Thomas Andri Hutomo",
     photo: "https://i.ibb.co.com/Xx8QRFQG/610956333-122239053698133286-390574820313624389-n.png",
     role: "CEO & Founder -- 50776e4f7365632047726f7570",
     description:
-      'Founder dan CEO di PwnOsec Group sebagai perusahaan privat yang bergerak di bidang keamanan siber. Menjalankan peran penuh waktu sebagai Cyber Security Intelligence di Deputi VI (Confidential). Memimpin operasi Zeroday Asian Group dan bertanggung jawab atas strategi riset kerentanan serta koordinasi tim secara keseluruhan.',
+      'Founder PwnOsec Group, perusahaan privat yang bergerak di bidang keamanan siber. Menjalankan peran sebagai Cyber Security Intelligence pada Deputi VI (Confidential) dengan fokus pada analisis intelijen siber (0B208301740319), riset kerentanan, dan pengembangan strategi keamanan. Memimpin Zeroday Asian Group serta mengoordinasikan kegiatan penelitian dan operasi keamanan siber secara menyeluruh.',
     specializations: [
       "Cyber Security Intelligence",
       "Zeroday Research & Coordination",
