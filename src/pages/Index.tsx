@@ -39,7 +39,7 @@ const Index = () => {
               <span className="text-muted-foreground">Research Documentation</span>
             </h1>
             <p className="text-sm text-muted-foreground leading-relaxed mb-8 max-w-lg">
-              Classified research repository maintained by PT. PwnOsec Technologies Ltd.
+              Classified research repository maintained by ZDG Asian Groups.
               All documents are indexed, cataloged, and available for authorized review.
             </p>
 
@@ -111,7 +111,7 @@ const Index = () => {
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-muted-foreground" />
               <span className="font-mono text-[10px] text-muted-foreground tracking-wider">
-                ZEROINTL DOCS -- PT. PWNOSEC TECHNOLOGIES LTD
+                ZEROINTL DOCS -- ZDG Asian Groups
               </span>
             </div>
             <span className="font-mono text-[10px] text-muted-foreground">
